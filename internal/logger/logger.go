@@ -18,6 +18,7 @@ type Logger interface {
 	Warn(msg string, args ...interface{})
 	Error(msg string, args ...interface{})
 	Fatal(msg string, args ...interface{})
+	Sync() error
 }
 
 type Config struct {

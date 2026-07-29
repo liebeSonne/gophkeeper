@@ -6,7 +6,7 @@ LDFLAGS := -X main.buildVersion=$(VERSION) -X 'main.buildDate=$(BUILD_TIME)' -X 
 .DEFAULT_GOAL := all
 
 .PHONY: all
-all: build-server build-client build clean test lint
+all: clean build test lint
 
 .PHONY: help
 help: ## Show available targets

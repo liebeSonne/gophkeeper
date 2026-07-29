@@ -21,8 +21,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("error initializing logger: %v", err)
 	}
+	defer func() {
+		err = logger.Sync()
+		if err != nil {
+			log.Fatalf("error syncing logger: %v", err)
+		}
+	}()
 
 	logger.Info("GophKeeper-client starting")
-
-	os.Exit(0)
 }

@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -23,6 +24,10 @@ var zapLogLevelMap = map[LogLevel]zapcore.Level{
 }
 
 func New(cfg Config) (Logger, error) {
+	if cfg.Writer == nil {
+		cfg.Writer = os.Stderr
+	}
+
 	level, ok := zapLogLevelMap[cfg.Level]
 	if !ok {
 		return nil, fmt.Errorf("invalid log level: %v", cfg.Level)
@@ -75,4 +80,7 @@ func (l *zapLoggerImpl) Error(msg string, keysAndValues ...interface{}) {
 }
 func (l *zapLoggerImpl) Fatal(msg string, keysAndValues ...interface{}) {
 	l.logger.Fatalw(msg, keysAndValues...)
+}
+func (l *zapLoggerImpl) Sync() error {
+	return l.logger.Sync()
 }
