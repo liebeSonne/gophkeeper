@@ -5,19 +5,18 @@
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Test binary
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output
 *.out
 
 # Binaries
-cmd/gophkeeper/main
-cmd/gophkeeper/gophkeeper
+bin/
 
-# Dependency directories (remove the comment below to include it)
+# Dependency
 vendor/
 
-# IDEs directories
-.idea
-.vscode
+# IDEs
+.idea/
+.vscode/
