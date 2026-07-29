@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
-	internallogger "github.com/liebeSonne/gophkeeper/internal/logger"
+	"github.com/liebeSonne/gophkeeper/internal/config"
 )
 
 var buildVersion = "N/A"
@@ -17,7 +16,12 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
-	logger, err := internallogger.New(internallogger.Config{Level: internallogger.InfoLevel, Writer: os.Stderr})
+	cfg, err := config.Load("")
+	if err != nil {
+		log.Fatalf("error loading config: %v", err)
+	}
+
+	logger, err := initLogger(cfg)
 	if err != nil {
 		log.Fatalf("error initializing logger: %v", err)
 	}
@@ -28,5 +32,8 @@ func main() {
 		}
 	}()
 
-	logger.Info("GophKeeper-server starting")
+	logger.Info("GophKeeper-server starting",
+		"server_address", cfg.ServerAddress,
+		"https", cfg.EnableHTTPS,
+	)
 }
