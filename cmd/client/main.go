@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	internallogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
 
 var buildVersion = "N/A"
@@ -15,7 +17,12 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
-	log.Println("GophKeeper-client starting")
+	logger, err := internallogger.New(internallogger.Config{Level: internallogger.InfoLevel, Writer: os.Stderr})
+	if err != nil {
+		log.Fatalf("error initializing logger: %v", err)
+	}
+
+	logger.Info("GophKeeper-client starting")
 
 	os.Exit(0)
 }
