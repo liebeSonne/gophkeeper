@@ -15,6 +15,7 @@ const (
 	FieldEnableHTTPS   = "enable_https"
 	FieldTLSCert       = "tls_cert"
 	FieldTLSKey        = "tls_key"
+	FieldDatabaseURI   = "database_uri"
 )
 
 // Flag names.
@@ -24,6 +25,7 @@ const (
 	FlagEnableHTTPS   = "enable-https"
 	FlagTLSCert       = "tls-cert"
 	FlagTLSKey        = "tls-key"
+	FlagDatabaseURI   = "database-uri"
 )
 
 // Environment variable names.
@@ -33,6 +35,7 @@ const (
 	EnvEnableHTTPS   = "ENABLE_HTTPS"
 	EnvTLSCert       = "TLS_CERT"
 	EnvTLSKey        = "TLS_KEY"
+	EnvDatabaseURI   = "DATABASE_URI"
 )
 
 // Log level values.
@@ -51,6 +54,7 @@ const (
 	DefaultLogLevel      = LogLevelInfo
 	DefaultServerAddress = "0.0.0.0:8080"
 	DefaultEnableHTTPS   = false
+	DefaultDatabaseURI   = ""
 )
 
 // ServerConfig - server configuration.
@@ -60,6 +64,7 @@ type ServerConfig struct {
 	EnableHTTPS   bool   `mapstructure:"ENABLE_HTTPS"`
 	TLSCert       string `mapstructure:"TLS_CERT"`
 	TLSKey        string `mapstructure:"TLS_KEY"`
+	DatabaseURI   string `mapstructure:"DATABASE_URI"`
 }
 
 // Load - reads configuration with priority: defaults → env → flags.
@@ -71,6 +76,7 @@ func Load(envPrefix string) (ServerConfig, error) {
 	v.SetDefault(FieldEnableHTTPS, DefaultEnableHTTPS)
 	v.SetDefault(FieldTLSCert, "")
 	v.SetDefault(FieldTLSKey, "")
+	v.SetDefault(FieldDatabaseURI, DefaultDatabaseURI)
 
 	v.SetEnvPrefix(envPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
@@ -82,6 +88,7 @@ func Load(envPrefix string) (ServerConfig, error) {
 	flagHTTPS := p.Bool(FlagEnableHTTPS, false, "enable HTTPS")
 	flagCert := p.String(FlagTLSCert, "", "path to TLS certificate file")
 	flagKey := p.String(FlagTLSKey, "", "path to TLS private key file")
+	flagDBURI := p.String(FlagDatabaseURI, "", "database connection URI")
 
 	if len(os.Args) > 1 {
 		if err := p.Parse(os.Args[1:]); err != nil {
@@ -104,6 +111,9 @@ func Load(envPrefix string) (ServerConfig, error) {
 	if p.Changed(FlagTLSKey) {
 		v.Set(FieldTLSKey, *flagKey)
 	}
+	if p.Changed(FlagDatabaseURI) {
+		v.Set(FieldDatabaseURI, *flagDBURI)
+	}
 
 	cfg := ServerConfig{
 		LogLevel:      v.GetString(FieldLogLevel),
@@ -111,6 +121,7 @@ func Load(envPrefix string) (ServerConfig, error) {
 		EnableHTTPS:   v.GetBool(FieldEnableHTTPS),
 		TLSCert:       v.GetString(FieldTLSCert),
 		TLSKey:        v.GetString(FieldTLSKey),
+		DatabaseURI:   v.GetString(FieldDatabaseURI),
 	}
 
 	return cfg, validate(cfg)

@@ -32,6 +32,7 @@ func TestLoad(t *testing.T) {
 				LogLevel:      DefaultLogLevel,
 				ServerAddress: DefaultServerAddress,
 				EnableHTTPS:   DefaultEnableHTTPS,
+				DatabaseURI:   DefaultDatabaseURI,
 			},
 		},
 		{
@@ -44,6 +45,7 @@ func TestLoad(t *testing.T) {
 			want: ServerConfig{
 				LogLevel:      LogLevelDebug,
 				ServerAddress: "127.0.0.1:9090",
+				DatabaseURI:   DefaultDatabaseURI,
 			},
 		},
 		{
@@ -60,6 +62,7 @@ func TestLoad(t *testing.T) {
 			want: ServerConfig{
 				LogLevel:      LogLevelError,
 				ServerAddress: "0.0.0.0:3000",
+				DatabaseURI:   DefaultDatabaseURI,
 			},
 		},
 		{
@@ -76,6 +79,34 @@ func TestLoad(t *testing.T) {
 				EnableHTTPS:   true,
 				TLSCert:       "/path/cert.pem",
 				TLSKey:        "/path/key.pem",
+				DatabaseURI:   DefaultDatabaseURI,
+			},
+		},
+		{
+			name: "env database uri",
+			args: []string{"gophkeeper-server"},
+			setEnv: map[string]string{
+				EnvDatabaseURI: "postgres://myuser:mypass@db.example.com:5432/mydb?sslmode=require",
+			},
+			want: ServerConfig{
+				LogLevel:      LogLevelInfo,
+				ServerAddress: DefaultServerAddress,
+				DatabaseURI:   "postgres://myuser:mypass@db.example.com:5432/mydb?sslmode=require",
+			},
+		},
+		{
+			name: "flag database uri",
+			args: []string{
+				"gophkeeper-server",
+				fmt.Sprintf("--%s", FlagDatabaseURI), "postgres://user:pass@localhost:5432/testdb?sslmode=disable",
+			},
+			setEnv: map[string]string{
+				EnvDatabaseURI: "postgres://envuser:envpass@envhost:5432/envdb?sslmode=disable",
+			},
+			want: ServerConfig{
+				LogLevel:      LogLevelInfo,
+				ServerAddress: DefaultServerAddress,
+				DatabaseURI:   "postgres://user:pass@localhost:5432/testdb?sslmode=disable",
 			},
 		},
 	}
@@ -103,6 +134,7 @@ func TestLoad(t *testing.T) {
 			assert.Equal(t, tc.want.EnableHTTPS, cfg.EnableHTTPS)
 			assert.Equal(t, tc.want.TLSCert, cfg.TLSCert)
 			assert.Equal(t, tc.want.TLSKey, cfg.TLSKey)
+			assert.Equal(t, tc.want.DatabaseURI, cfg.DatabaseURI)
 		})
 	}
 }
