@@ -16,6 +16,7 @@ func makeEnvKey(envPrefix, name string) string {
 	return envPrefix + "_" + name
 }
 
+// nolint: gosec
 func TestLoad(t *testing.T) {
 	testCases := []struct {
 		name      string

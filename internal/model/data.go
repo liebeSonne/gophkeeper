@@ -24,6 +24,7 @@ type Data struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// nolint: gosec
 type LoginPasswordPayload struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
