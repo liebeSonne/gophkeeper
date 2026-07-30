@@ -1,0 +1,566 @@
+openapi: "3.0.3"
+info:
+  title: GophKeeper API
+  description: Password manager REST API
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: system
+  - name: auth
+  - name: data
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      operationId: HealthCheck
+      tags:
+        - system
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/healthResponse'
+        "500":
+          $ref: '#/components/responses/serverError'
+
+  /api/v1/auth/register:
+    post:
+      summary: Register a new user
+      operationId: RegisterUser
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerRequest'
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "409":
+          $ref: '#/components/responses/conflict'
+
+  /api/v1/auth/login:
+    post:
+      summary: Login and get tokens
+      operationId: LoginUser
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/loginRequest'
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tokenResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "401":
+          $ref: '#/components/responses/unauthorized'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh access token
+      operationId: RefreshToken
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/refreshRequest'
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tokenResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "401":
+          $ref: '#/components/responses/unauthorized'
+
+  /api/v1/data:
+    post:
+      summary: Create a new data entry
+      operationId: CreateData
+      tags:
+        - data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createDataRequest'
+      responses:
+        "201":
+          description: Data entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/createDataResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+
+  /api/v1/data/list:
+    get:
+      summary: List data entries with filtering and pagination
+      operationId: ListData
+      tags:
+        - data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: page_size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: type
+          in: query
+          description: Filter by entry type
+          required: false
+          schema:
+            $ref: '#/components/schemas/dataType'
+        - name: query
+          in: query
+          description: Search query (searches by metadata)
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of data entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listDataResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+
+  /api/v1/data/{id}:
+    get:
+      summary: Get a data entry by ID
+      operationId: GetData
+      tags:
+        - data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Data entry ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Data entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/dataInfo'
+        "404":
+          $ref: '#/components/responses/notFound'
+
+    put:
+      summary: Update a data entry
+      operationId: UpdateData
+      tags:
+        - data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Data entry ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateDataRequest'
+      responses:
+        "200":
+          description: Data entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/updateDataResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "404":
+          $ref: '#/components/responses/notFound'
+
+    delete:
+      summary: Delete a data entry
+      operationId: DeleteData
+      tags:
+        - data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Data entry ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Data entry deleted
+        "404":
+          $ref: '#/components/responses/notFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    serverError:
+      description: Server is unhealthy
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    badRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    notFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+
+  schemas:
+    error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+
+    healthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: "ok"
+        version:
+          type: string
+          example: "1.0.0"
+
+    registerRequest:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          minLength: 4
+          maxLength: 128
+
+    loginRequest:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    refreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+
+    tokenResponse:
+      type: object
+      required:
+        - token_type
+        - access_token
+        - refresh_token
+        - expires_in
+        - refresh_token_expires_in
+      properties:
+        token_type:
+          type: string
+          example: "bearer"
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Access token expiration time in seconds
+        refresh_token_expires_in:
+          type: integer
+          description: Refresh token expiration time in seconds
+
+    user:
+      type: object
+      required:
+        - id
+        - login
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        login:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    createDataRequest:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/data'
+
+    createDataResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/dataInfo'
+
+    updateDataRequest:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/data'
+
+    updateDataResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/dataInfo'
+
+    dataType:
+      type: string
+      enum:
+        - LOGIN_PASSWORD
+        - BANK_CARD
+        - TEXT
+      description: Type of data entry
+
+    dataInfo:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/loginPasswordDataInfo'
+        - $ref: '#/components/schemas/bankCardDataInfo'
+        - $ref: '#/components/schemas/textDataInfo'
+      discriminator:
+        propertyName: type
+        mapping:
+          LOGIN_PASSWORD: '#/components/schemas/loginPasswordDataInfo'
+          BANK_CARD: '#/components/schemas/bankCardDataInfo'
+          TEXT: '#/components/schemas/textDataInfo'
+
+    baseDataInfo:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/dataType'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    loginPasswordDataInfo:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseDataInfo'
+        - $ref: '#/components/schemas/loginPasswordData'
+
+    bankCardDataInfo:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseDataInfo'
+        - $ref: '#/components/schemas/bankCardData'
+
+    textDataInfo:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseDataInfo'
+        - $ref: '#/components/schemas/textData'
+
+    data:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/loginPasswordData'
+        - $ref: '#/components/schemas/bankCardData'
+        - $ref: '#/components/schemas/textData'
+      discriminator:
+        propertyName: type
+        mapping:
+          LOGIN_PASSWORD: '#/components/schemas/loginPasswordData'
+          BANK_CARD: '#/components/schemas/bankCardData'
+          TEXT: '#/components/schemas/textData'
+
+    baseData:
+      type: object
+      properties:
+        metadata:
+          type: string
+          maxLength: 65536
+          description: Arbitrary text metadata (unencrypted)
+
+    loginPasswordData:
+      allOf:
+        - $ref: '#/components/schemas/baseData'
+        - type: object
+          required:
+            - type
+            - login
+            - password
+          properties:
+            type:
+              type: string
+              enum: [LOGIN_PASSWORD]
+            login:
+              type: string
+            password:
+              type: string
+    textData:
+      allOf:
+        - $ref: '#/components/schemas/baseData'
+        - type: object
+          required:
+            - type
+            - text
+          properties:
+            type:
+              type: string
+              enum: [TEXT]
+            text:
+              type: string
+
+    bankCardData:
+      allOf:
+        - $ref: '#/components/schemas/baseData'
+        - type: object
+          required:
+            - type
+            - card_number
+            - card_holder
+            - card_expiry
+            - card_cvv
+          properties:
+            type:
+              type: string
+              enum: [BANK_CARD]
+            card_number:
+              type: string
+            card_holder:
+              type: string
+            card_expiry:
+              type: string
+              description: Card expiry date (MM/YY)
+            card_cvv:
+              type: string
+
+    listDataResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+        - total_pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/dataInfo'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
