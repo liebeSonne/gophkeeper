@@ -34,3 +34,7 @@ test: ## Run tests
 .PHONY: lint
 lint: ## Run linter
 	@golangci-lint run ./...
+
+.PHONY: create-migration
+create-migration:
+	@migrate create -ext sql -dir ./migrations -format "20060102150405" $(name)
