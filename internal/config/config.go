@@ -20,6 +20,11 @@ const (
 	FieldJWTSecret     = "jwt_secret"
 	FieldJWTAccessTTL  = "jwt_access_ttl"
 	FieldJWTRefreshTTL = "jwt_refresh_ttl"
+	FieldEnableVault   = "enable_vault"
+	FieldVaultAddress  = "vault_address"
+	FieldVaultToken    = "vault_token"
+	FieldVaultKeyPath  = "vault_key_path"
+	FieldEncryptionKey = "encryption_key"
 )
 
 // Flag names.
@@ -33,6 +38,11 @@ const (
 	FlagJWTSecret     = "jwt-secret"
 	FlagJWTAccessTTL  = "jwt-access-ttl"
 	FlagJWTRefreshTTL = "jwt-refresh-ttl"
+	FlagVault         = "vault"
+	FlagVaultAddress  = "vault-address"
+	FlagVaultToken    = "vault-token"
+	FlagVaultKeyPath  = "vault-key-path"
+	FlagEncryptionKey = "encryption-key"
 )
 
 // Environment variable names.
@@ -46,6 +56,11 @@ const (
 	EnvJWTSecret     = "JWT_SECRET"
 	EnvJWTAccessTTL  = "JWT_ACCESS_TTL"
 	EnvJWTRefreshTTL = "JWT_REFRESH_TTL"
+	EnvEnableVault   = "ENABLE_VAULT"
+	EnvVaultAddress  = "VAULT_ADDRESS"
+	EnvVaultToken    = "VAULT_TOKEN"
+	EnvVaultKeyPath  = "VAULT_KEY_PATH"
+	EnvEncryptionKey = "ENCRYPTION_KEY"
 )
 
 // Log level values.
@@ -69,6 +84,8 @@ const (
 	DefaultJWTAccessTTLStr  = "15m"
 	DefaultJWTRefreshTTL    = 24 * time.Hour
 	DefaultJWTRefreshTTLStr = "24h"
+	DefaultEnableVault      = false
+	DefaultVaultKeyPath     = "secret/data/gophkeeper/encryption"
 )
 
 // ServerConfig - server configuration.
@@ -83,6 +100,11 @@ type ServerConfig struct {
 	JWTSecret     string        `mapstructure:"JWT_SECRET"`
 	JWTAccessTTL  time.Duration `mapstructure:"JWT_ACCESS_TTL"`
 	JWTRefreshTTL time.Duration `mapstructure:"JWT_REFRESH_TTL"`
+	EnableVault   bool          `mapstructure:"ENABLE_VAULT"`
+	VaultAddress  string        `mapstructure:"VAULT_ADDRESS"`
+	VaultToken    string        `mapstructure:"VAULT_TOKEN"`
+	VaultKeyPath  string        `mapstructure:"VAULT_KEY_PATH"`
+	EncryptionKey string        `mapstructure:"ENCRYPTION_KEY"`
 }
 
 // Load - reads configuration with priority: defaults → env → flags.
@@ -98,6 +120,11 @@ func Load(envPrefix string) (ServerConfig, error) {
 	v.SetDefault(FieldJWTSecret, "")
 	v.SetDefault(FieldJWTAccessTTL, DefaultJWTAccessTTLStr)
 	v.SetDefault(FieldJWTRefreshTTL, DefaultJWTRefreshTTLStr)
+	v.SetDefault(FieldEnableVault, DefaultEnableVault)
+	v.SetDefault(FieldVaultAddress, "")
+	v.SetDefault(FieldVaultToken, "")
+	v.SetDefault(FieldVaultKeyPath, DefaultVaultKeyPath)
+	v.SetDefault(FieldEncryptionKey, "")
 
 	v.SetEnvPrefix(envPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
@@ -113,9 +140,15 @@ func Load(envPrefix string) (ServerConfig, error) {
 	flagJWTSecret := p.String(FlagJWTSecret, "", "JWT secret key")
 	flagJWTAccessTTL := p.Duration(FlagJWTAccessTTL, DefaultJWTAccessTTL, "JWT access token TTL")
 	flagJWTRefreshTTL := p.Duration(FlagJWTRefreshTTL, DefaultJWTRefreshTTL, "JWT refresh token TTL")
+	flagVault := p.Bool(FlagVault, DefaultEnableVault, "enable Vault for encryption key storage")
+	flagVaultAddress := p.String(FlagVaultAddress, "", "Vault address (e.g. http://127.0.0.1:8200)")
+	flagVaultToken := p.String(FlagVaultToken, "", "Vault token")
+	flagVaultKeyPath := p.String(FlagVaultKeyPath, DefaultVaultKeyPath, "Vault KV v2 key path")
+	flagEncryptionKey := p.String(FlagEncryptionKey, "", "base64-encoded encryption key (fallback without Vault)")
 
 	if len(os.Args) > 1 {
-		if err := p.Parse(os.Args[1:]); err != nil {
+		err := p.Parse(os.Args[1:])
+		if err != nil {
 			return ServerConfig{}, err
 		}
 	}
@@ -147,6 +180,21 @@ func Load(envPrefix string) (ServerConfig, error) {
 	if p.Changed(FlagJWTRefreshTTL) {
 		v.Set(FieldJWTRefreshTTL, *flagJWTRefreshTTL)
 	}
+	if p.Changed(FlagVault) {
+		v.Set(FieldEnableVault, *flagVault)
+	}
+	if p.Changed(FlagVaultAddress) {
+		v.Set(FieldVaultAddress, *flagVaultAddress)
+	}
+	if p.Changed(FlagVaultToken) {
+		v.Set(FieldVaultToken, *flagVaultToken)
+	}
+	if p.Changed(FlagVaultKeyPath) {
+		v.Set(FieldVaultKeyPath, *flagVaultKeyPath)
+	}
+	if p.Changed(FlagEncryptionKey) {
+		v.Set(FieldEncryptionKey, *flagEncryptionKey)
+	}
 
 	cfg := ServerConfig{
 		LogLevel:      v.GetString(FieldLogLevel),
@@ -158,6 +206,11 @@ func Load(envPrefix string) (ServerConfig, error) {
 		JWTSecret:     v.GetString(FieldJWTSecret),
 		JWTAccessTTL:  v.GetDuration(FieldJWTAccessTTL),
 		JWTRefreshTTL: v.GetDuration(FieldJWTRefreshTTL),
+		EnableVault:   v.GetBool(FieldEnableVault),
+		VaultAddress:  v.GetString(FieldVaultAddress),
+		VaultToken:    v.GetString(FieldVaultToken),
+		VaultKeyPath:  v.GetString(FieldVaultKeyPath),
+		EncryptionKey: v.GetString(FieldEncryptionKey),
 	}
 
 	return cfg, validate(cfg)

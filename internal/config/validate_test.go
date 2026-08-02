@@ -9,6 +9,7 @@ import (
 
 func TestValidate(t *testing.T) {
 	jwtSecret1 := "testsecret"
+	encryptionKey := "YWJjZGVmZzEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIz"
 
 	testCases := []struct {
 		name    string
@@ -17,27 +18,27 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			name:    "valid config",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
 			name:    "valid wildcard address",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:8080", JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:8080", JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
 			name:    "valid empty host",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: ":8080", JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: ":8080", JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
 			name:    "valid https config",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:443", EnableHTTPS: true, TLSCert: "/cert.pem", TLSKey: "/key.pem", JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:443", EnableHTTPS: true, TLSCert: "/cert.pem", TLSKey: "/key.pem", JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
 			name:    "all log levels valid",
-			cfg:     ServerConfig{LogLevel: LogLevelDebug, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelDebug, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
@@ -77,13 +78,38 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:    "valid jwt secret",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EncryptionKey: encryptionKey},
 			wantErr: nil,
 		},
 		{
 			name:    "empty jwt secret",
 			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: ""},
 			wantErr: errEmptyJWTSecret,
+		},
+		{
+			name:    "valid vault config",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200", VaultToken: "dev-token"},
+			wantErr: nil,
+		},
+		{
+			name:    "vault without address",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultToken: "dev-token"},
+			wantErr: errEmptyVaultAddress,
+		},
+		{
+			name:    "vault without token",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200"},
+			wantErr: errEmptyVaultToken,
+		},
+		{
+			name:    "no encryption key set",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
+			wantErr: errEncryptionKeyNotSet,
+		},
+		{
+			name:    "both vault and encryption key",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200", VaultToken: "dev-token", EncryptionKey: encryptionKey},
+			wantErr: errBothVaultAndEncryptionKey,
 		},
 	}
 

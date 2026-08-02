@@ -106,13 +106,14 @@ func (r *DataRepo) List(ctx context.Context, spec *ListSpec) ([]model.Data, erro
 	var result []model.Data
 	for rows.Next() {
 		var data model.Data
-		err := rows.Scan(&data.ID, &data.UserID, &data.Type, &data.Payload, &data.Metadata, &data.CreatedAt, &data.UpdatedAt)
+		err = rows.Scan(&data.ID, &data.UserID, &data.Type, &data.Payload, &data.Metadata, &data.CreatedAt, &data.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("scan data row: %w", err)
 		}
 		result = append(result, data)
 	}
-	if err := rows.Err(); err != nil {
+	err = rows.Err()
+	if err != nil {
 		return nil, fmt.Errorf("iterate data rows: %w", err)
 	}
 	return result, nil

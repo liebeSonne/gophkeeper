@@ -75,7 +75,10 @@ func runApp() error {
 		return fmt.Errorf("error running migrations: %w", err)
 	}
 
-	deps := newDependencyContainer(connection, cfg, logger)
+	deps, err := newDependencyContainer(ctx, connection, cfg, logger)
+	if err != nil {
+		return fmt.Errorf("error creating dependency container: %w", err)
+	}
 
 	srv := &http.Server{
 		Addr:              cfg.ServerAddress,
@@ -122,7 +125,8 @@ func gracefulShutdown(srv *http.Server, logger internallogger.Logger) {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
+	err := srv.Shutdown(shutdownCtx)
+	if err != nil {
 		logger.Error("server shutdown error", "err", err)
 	}
 

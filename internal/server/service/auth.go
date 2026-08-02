@@ -101,7 +101,8 @@ func (s *AuthService) RevokeToken(ctx context.Context, refreshToken string) erro
 		return fmt.Errorf("get token: %w", err)
 	}
 
-	if err := s.tokenRepo.Revoke(ctx, storedToken.ID); err != nil {
+	err = s.tokenRepo.Revoke(ctx, storedToken.ID)
+	if err != nil {
 		return fmt.Errorf("revoke token: %w", err)
 	}
 
@@ -141,7 +142,8 @@ func (s *AuthService) generateTokenResponse(ctx context.Context, userID uuid.UUI
 		CreatedAt: time.Now(),
 	}
 
-	if err := s.tokenRepo.Store(ctx, token); err != nil {
+	err = s.tokenRepo.Store(ctx, token)
+	if err != nil {
 		return model.Token{}, fmt.Errorf("store token: %w", err)
 	}
 

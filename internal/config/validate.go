@@ -14,6 +14,10 @@ var errInvalidServerAddressPort = errors.New("invalid server address port (must 
 var errEmptyTLSCert = errors.New("empty TLS certificate")
 var errEmptyTLSKey = errors.New("empty TLS key")
 var errEmptyJWTSecret = errors.New("empty JWT secret")
+var errEmptyVaultAddress = errors.New("empty Vault address")
+var errEmptyVaultToken = errors.New("empty Vault token")
+var errEncryptionKeyNotSet = errors.New("encryption key not set (set --vault or --encryption-key)")
+var errBothVaultAndEncryptionKey = errors.New("cannot use both Vault and encryption key")
 
 var validLogLevels = map[string]bool{
 	LogLevelDebug: true,
@@ -56,6 +60,23 @@ func validate(cfg ServerConfig) error {
 
 	if cfg.JWTSecret == "" {
 		return errEmptyJWTSecret
+	}
+
+	if cfg.EnableVault && cfg.EncryptionKey != "" {
+		return errBothVaultAndEncryptionKey
+	}
+
+	if cfg.EnableVault {
+		if cfg.VaultAddress == "" {
+			return errEmptyVaultAddress
+		}
+		if cfg.VaultToken == "" {
+			return errEmptyVaultToken
+		}
+	}
+
+	if !cfg.EnableVault && cfg.EncryptionKey == "" {
+		return errEncryptionKeyNotSet
 	}
 
 	return nil
