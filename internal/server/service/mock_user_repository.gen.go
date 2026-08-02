@@ -40,24 +40,22 @@ func (_m *MockUserRepository) EXPECT() *MockUserRepository_Expecter {
 }
 
 // GetByLogin provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) GetByLogin(ctx context.Context, login string) (*model.User, error) {
+func (_mock *MockUserRepository) GetByLogin(ctx context.Context, login string) (model.User, error) {
 	ret := _mock.Called(ctx, login)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetByLogin")
 	}
 
-	var r0 *model.User
+	var r0 model.User
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*model.User, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.User, error)); ok {
 		return returnFunc(ctx, login)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *model.User); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.User); ok {
 		r0 = returnFunc(ctx, login)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.User)
-		}
+		r0 = ret.Get(0).(model.User)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, login)
@@ -97,12 +95,12 @@ func (_c *MockUserRepository_GetByLogin_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *MockUserRepository_GetByLogin_Call) Return(user *model.User, err error) *MockUserRepository_GetByLogin_Call {
+func (_c *MockUserRepository_GetByLogin_Call) Return(user model.User, err error) *MockUserRepository_GetByLogin_Call {
 	_c.Call.Return(user, err)
 	return _c
 }
 
-func (_c *MockUserRepository_GetByLogin_Call) RunAndReturn(run func(ctx context.Context, login string) (*model.User, error)) *MockUserRepository_GetByLogin_Call {
+func (_c *MockUserRepository_GetByLogin_Call) RunAndReturn(run func(ctx context.Context, login string) (model.User, error)) *MockUserRepository_GetByLogin_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -161,7 +159,7 @@ func (_c *MockUserRepository_NextID_Call) RunAndReturn(run func(ctx context.Cont
 }
 
 // Store provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) Store(ctx context.Context, user *model.User) error {
+func (_mock *MockUserRepository) Store(ctx context.Context, user model.User) error {
 	ret := _mock.Called(ctx, user)
 
 	if len(ret) == 0 {
@@ -169,7 +167,7 @@ func (_mock *MockUserRepository) Store(ctx context.Context, user *model.User) er
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.User) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.User) error); ok {
 		r0 = returnFunc(ctx, user)
 	} else {
 		r0 = ret.Error(0)
@@ -184,20 +182,20 @@ type MockUserRepository_Store_Call struct {
 
 // Store is a helper method to define mock.On call
 //   - ctx context.Context
-//   - user *model.User
+//   - user model.User
 func (_e *MockUserRepository_Expecter) Store(ctx interface{}, user interface{}) *MockUserRepository_Store_Call {
 	return &MockUserRepository_Store_Call{Call: _e.mock.On("Store", ctx, user)}
 }
 
-func (_c *MockUserRepository_Store_Call) Run(run func(ctx context.Context, user *model.User)) *MockUserRepository_Store_Call {
+func (_c *MockUserRepository_Store_Call) Run(run func(ctx context.Context, user model.User)) *MockUserRepository_Store_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *model.User
+		var arg1 model.User
 		if args[1] != nil {
-			arg1 = args[1].(*model.User)
+			arg1 = args[1].(model.User)
 		}
 		run(
 			arg0,
@@ -212,7 +210,7 @@ func (_c *MockUserRepository_Store_Call) Return(err error) *MockUserRepository_S
 	return _c
 }
 
-func (_c *MockUserRepository_Store_Call) RunAndReturn(run func(ctx context.Context, user *model.User) error) *MockUserRepository_Store_Call {
+func (_c *MockUserRepository_Store_Call) RunAndReturn(run func(ctx context.Context, user model.User) error) *MockUserRepository_Store_Call {
 	_c.Call.Return(run)
 	return _c
 }

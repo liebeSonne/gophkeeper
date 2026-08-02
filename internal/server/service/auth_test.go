@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
+	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
 	"github.com/liebeSonne/gophkeeper/internal/model"
 	"github.com/liebeSonne/gophkeeper/internal/repository"
-	"github.com/liebeSonne/gophkeeper/internal/server/handler"
 )
 
 func hashPassword(password string) string {
@@ -38,12 +38,12 @@ func TestAuthService_Register(t *testing.T) {
 			setupMocks: func(userRepo *MockUserRepository, tokenRepo *MockTokenRepository) {
 				userID := uuid.New()
 				userRepo.EXPECT().NextID(mock.Anything).Return(userID)
-				userRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(u *model.User) bool {
+				userRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(u model.User) bool {
 					return u.Login == "testuser"
 				})).Return(nil)
 				tokenID := uuid.New()
 				tokenRepo.EXPECT().NextID(mock.Anything).Return(tokenID)
-				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok *model.RefreshToken) bool {
+				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok model.RefreshToken) bool {
 					return tok.UserID == userID
 				})).Return(nil)
 			},
@@ -56,7 +56,7 @@ func TestAuthService_Register(t *testing.T) {
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
 				userID := uuid.New()
 				userRepo.EXPECT().NextID(mock.Anything).Return(userID)
-				userRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(u *model.User) bool {
+				userRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(u model.User) bool {
 					return u.Login == "existinguser"
 				})).Return(repository.NewErrConflictUserLogin("existinguser", errors.New("unique violation")))
 			},
@@ -109,14 +109,14 @@ func TestAuthService_Login(t *testing.T) {
 			password: "password123",
 			setupMocks: func(userRepo *MockUserRepository, tokenRepo *MockTokenRepository) {
 				userID := uuid.New()
-				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(&model.User{
+				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(model.User{
 					ID:       userID,
 					Login:    "testuser",
 					Password: hashPassword("password123"),
 				}, nil)
 				tokenID := uuid.New()
 				tokenRepo.EXPECT().NextID(mock.Anything).Return(tokenID)
-				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok *model.RefreshToken) bool {
+				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok model.RefreshToken) bool {
 					return tok.UserID == userID
 				})).Return(nil)
 			},
@@ -127,24 +127,24 @@ func TestAuthService_Login(t *testing.T) {
 			login:    "unknownuser",
 			password: "password123",
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
-				userRepo.EXPECT().GetByLogin(mock.Anything, "unknownuser").Return(nil, repository.ErrNotFound)
+				userRepo.EXPECT().GetByLogin(mock.Anything, "unknownuser").Return(model.User{}, repository.ErrNotFound)
 			},
 			wantErr: true,
-			errType: handler.ErrInvalidCredentials,
+			errType: apperrors.ErrInvalidCredentials,
 		},
 		{
 			name:     "invalid password",
 			login:    "testuser",
 			password: "wrongpassword",
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
-				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(&model.User{
+				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(model.User{
 					ID:       uuid.New(),
 					Login:    "testuser",
 					Password: hashPassword("password123"),
 				}, nil)
 			},
 			wantErr: true,
-			errType: handler.ErrInvalidCredentials,
+			errType: apperrors.ErrInvalidCredentials,
 		},
 	}
 
@@ -192,7 +192,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			setupTokenRepo: func(tokenRepo *MockTokenRepository) {
 				oldTokenID := uuid.New()
 				userID := uuid.New()
-				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(&model.RefreshToken{
+				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        oldTokenID,
 					UserID:    userID,
 					TokenHash: "hashed",
@@ -201,7 +201,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				tokenRepo.EXPECT().Revoke(mock.Anything, oldTokenID).Return(nil)
 				newTokenID := uuid.New()
 				tokenRepo.EXPECT().NextID(mock.Anything).Return(newTokenID)
-				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok *model.RefreshToken) bool {
+				tokenRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(tok model.RefreshToken) bool {
 					return tok.UserID == userID
 				})).Return(nil)
 			},
@@ -213,10 +213,10 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			setupUserRepo: func(_ *MockUserRepository) {
 			},
 			setupTokenRepo: func(tokenRepo *MockTokenRepository) {
-				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(nil, repository.ErrNotFound)
+				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{}, repository.ErrNotFound)
 			},
 			wantErr: true,
-			errType: handler.ErrInvalidCredentials,
+			errType: apperrors.ErrInvalidCredentials,
 		},
 		{
 			name:         "revoked token",
@@ -225,7 +225,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			},
 			setupTokenRepo: func(tokenRepo *MockTokenRepository) {
 				revokedAt := time.Now()
-				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(&model.RefreshToken{
+				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        uuid.New(),
 					UserID:    uuid.New(),
 					TokenHash: "hashed",
@@ -234,7 +234,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			errType: handler.ErrInvalidCredentials,
+			errType: apperrors.ErrInvalidCredentials,
 		},
 	}
 
@@ -278,7 +278,7 @@ func TestAuthService_RevokeToken(t *testing.T) {
 			refreshToken: "validrefresh",
 			setupTokenRepo: func(tokenRepo *MockTokenRepository) {
 				tokenID := uuid.New()
-				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(&model.RefreshToken{
+				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        tokenID,
 					TokenHash: "hashed",
 				}, nil)
@@ -290,7 +290,7 @@ func TestAuthService_RevokeToken(t *testing.T) {
 			name:         "token not found (idempotent)",
 			refreshToken: "invalidrefresh",
 			setupTokenRepo: func(tokenRepo *MockTokenRepository) {
-				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(nil, repository.ErrNotFound)
+				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{}, repository.ErrNotFound)
 			},
 			wantErr: false,
 		},

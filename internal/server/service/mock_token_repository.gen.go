@@ -40,24 +40,22 @@ func (_m *MockTokenRepository) EXPECT() *MockTokenRepository_Expecter {
 }
 
 // GetByTokenHash provides a mock function for the type MockTokenRepository
-func (_mock *MockTokenRepository) GetByTokenHash(ctx context.Context, tokenHash string) (*model.RefreshToken, error) {
+func (_mock *MockTokenRepository) GetByTokenHash(ctx context.Context, tokenHash string) (model.RefreshToken, error) {
 	ret := _mock.Called(ctx, tokenHash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetByTokenHash")
 	}
 
-	var r0 *model.RefreshToken
+	var r0 model.RefreshToken
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*model.RefreshToken, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.RefreshToken, error)); ok {
 		return returnFunc(ctx, tokenHash)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *model.RefreshToken); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.RefreshToken); ok {
 		r0 = returnFunc(ctx, tokenHash)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.RefreshToken)
-		}
+		r0 = ret.Get(0).(model.RefreshToken)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, tokenHash)
@@ -97,12 +95,12 @@ func (_c *MockTokenRepository_GetByTokenHash_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *MockTokenRepository_GetByTokenHash_Call) Return(refreshToken *model.RefreshToken, err error) *MockTokenRepository_GetByTokenHash_Call {
+func (_c *MockTokenRepository_GetByTokenHash_Call) Return(refreshToken model.RefreshToken, err error) *MockTokenRepository_GetByTokenHash_Call {
 	_c.Call.Return(refreshToken, err)
 	return _c
 }
 
-func (_c *MockTokenRepository_GetByTokenHash_Call) RunAndReturn(run func(ctx context.Context, tokenHash string) (*model.RefreshToken, error)) *MockTokenRepository_GetByTokenHash_Call {
+func (_c *MockTokenRepository_GetByTokenHash_Call) RunAndReturn(run func(ctx context.Context, tokenHash string) (model.RefreshToken, error)) *MockTokenRepository_GetByTokenHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -218,7 +216,7 @@ func (_c *MockTokenRepository_Revoke_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // Store provides a mock function for the type MockTokenRepository
-func (_mock *MockTokenRepository) Store(ctx context.Context, token *model.RefreshToken) error {
+func (_mock *MockTokenRepository) Store(ctx context.Context, token model.RefreshToken) error {
 	ret := _mock.Called(ctx, token)
 
 	if len(ret) == 0 {
@@ -226,7 +224,7 @@ func (_mock *MockTokenRepository) Store(ctx context.Context, token *model.Refres
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.RefreshToken) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.RefreshToken) error); ok {
 		r0 = returnFunc(ctx, token)
 	} else {
 		r0 = ret.Error(0)
@@ -241,20 +239,20 @@ type MockTokenRepository_Store_Call struct {
 
 // Store is a helper method to define mock.On call
 //   - ctx context.Context
-//   - token *model.RefreshToken
+//   - token model.RefreshToken
 func (_e *MockTokenRepository_Expecter) Store(ctx interface{}, token interface{}) *MockTokenRepository_Store_Call {
 	return &MockTokenRepository_Store_Call{Call: _e.mock.On("Store", ctx, token)}
 }
 
-func (_c *MockTokenRepository_Store_Call) Run(run func(ctx context.Context, token *model.RefreshToken)) *MockTokenRepository_Store_Call {
+func (_c *MockTokenRepository_Store_Call) Run(run func(ctx context.Context, token model.RefreshToken)) *MockTokenRepository_Store_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *model.RefreshToken
+		var arg1 model.RefreshToken
 		if args[1] != nil {
-			arg1 = args[1].(*model.RefreshToken)
+			arg1 = args[1].(model.RefreshToken)
 		}
 		run(
 			arg0,
@@ -269,7 +267,7 @@ func (_c *MockTokenRepository_Store_Call) Return(err error) *MockTokenRepository
 	return _c
 }
 
-func (_c *MockTokenRepository_Store_Call) RunAndReturn(run func(ctx context.Context, token *model.RefreshToken) error) *MockTokenRepository_Store_Call {
+func (_c *MockTokenRepository_Store_Call) RunAndReturn(run func(ctx context.Context, token model.RefreshToken) error) *MockTokenRepository_Store_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,19 @@ const (
 	DataTypeBankCard
 	DataTypeText
 )
+
+func (t DataType) String() string {
+	switch t {
+	case DataTypeLoginPassword:
+		return "LOGIN_PASSWORD"
+	case DataTypeBankCard:
+		return "BANK_CARD"
+	case DataTypeText:
+		return "TEXT"
+	default:
+		return fmt.Sprintf("unknown_data_type(%d)", t)
+	}
+}
 
 type Data struct {
 	ID        uuid.UUID `json:"id"`

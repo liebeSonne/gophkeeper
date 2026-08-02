@@ -26,7 +26,7 @@ func (r *TokenRepo) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *TokenRepo) Store(ctx context.Context, token *model.RefreshToken) error {
+func (r *TokenRepo) Store(ctx context.Context, token model.RefreshToken) error {
 	const query = `
 		INSERT INTO refresh_token (id, user_id, token_hash, expires_at, revoked_at, created_at) 
 		VALUES ($1, $2, $3, $4, $5, $6) 
@@ -43,21 +43,21 @@ func (r *TokenRepo) Store(ctx context.Context, token *model.RefreshToken) error 
 	return nil
 }
 
-func (r *TokenRepo) GetByTokenHash(ctx context.Context, tokenHash string) (*model.RefreshToken, error) {
+func (r *TokenRepo) GetByTokenHash(ctx context.Context, tokenHash string) (model.RefreshToken, error) {
 	const query = `
 		SELECT id, user_id, token_hash, expires_at, revoked_at, created_at 
 		FROM refresh_token 
 		WHERE token_hash = $1
 	`
-	token := &model.RefreshToken{}
+	token := model.RefreshToken{}
 	err := r.pool.QueryRow(ctx, query, tokenHash).Scan(
 		&token.ID, &token.UserID, &token.TokenHash, &token.ExpiresAt, &token.RevokedAt, &token.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repository.ErrNotFound
+			return model.RefreshToken{}, repository.ErrNotFound
 		}
-		return nil, fmt.Errorf("get refresh token by hash: %w", err)
+		return model.RefreshToken{}, fmt.Errorf("get refresh token by hash: %w", err)
 	}
 	return token, nil
 }

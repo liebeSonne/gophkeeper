@@ -35,7 +35,7 @@ func newDependencyContainer(
 
 	userRepo := db.NewUserRepo(pool)
 	tokenRepo := db.NewTokenRepo(pool)
-	_ = db.NewDataRepo(pool)
+	dataRepo := db.NewDataRepo(pool)
 
 	jwtService := jwt.NewJWT(cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
@@ -45,9 +45,11 @@ func newDependencyContainer(
 		return nil, fmt.Errorf("create encryptor: %w", err)
 	}
 
+	dataService := service.NewDataService(dataRepo, encryptor)
+
 	// HTTP Server
 	authMiddleware := auth.NewAuthMiddleware(authService)
-	serverHandler := handler.NewServerHandler(authService, logger)
+	serverHandler := handler.NewServerHandler(authService, dataService, logger)
 
 	r := chi.NewMux()
 	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))

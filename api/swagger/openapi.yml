@@ -149,12 +149,16 @@ paths:
             default: 20
             minimum: 1
             maximum: 100
-        - name: type
+        - name: types
           in: query
-          description: Filter by entry type
+          description: Filter by entry types (comma-separated)
           required: false
           schema:
-            $ref: '#/components/schemas/dataType'
+            type: array
+            items:
+              $ref: '#/components/schemas/dataType'
+            style: form
+            explode: false
         - name: query
           in: query
           description: Search query (searches by metadata)

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
+	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/model"
 	"github.com/liebeSonne/gophkeeper/internal/repository"
@@ -40,7 +41,9 @@ func TestHealthCheck(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, l)
+			mockDataService := NewMockDataService(t)
+
+			h := NewServerHandler(mockService, mockDataService, l)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/health", http.NoBody)
 			w := httptest.NewRecorder()
@@ -115,13 +118,14 @@ func TestRegisterUser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockService := NewMockAuthService(t)
+			mockDataService := NewMockDataService(t)
 			if tc.setupMock != nil {
 				tc.setupMock(mockService)
 			}
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, l)
+			h := NewServerHandler(mockService, mockDataService, l)
 
 			var bodyBytes []byte
 			var err error
@@ -154,7 +158,7 @@ func TestRegisterUser(t *testing.T) {
 
 // nolint: dupl
 func TestLoginUser(t *testing.T) {
-	invalidCredErr := ErrInvalidCredentials
+	invalidCredErr := apperrors.ErrInvalidCredentials
 	someErr := errors.New("internal error")
 
 	testCases := []struct {
@@ -209,13 +213,14 @@ func TestLoginUser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockService := NewMockAuthService(t)
+			mockDataService := NewMockDataService(t)
 			if tc.setupMock != nil {
 				tc.setupMock(mockService)
 			}
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, l)
+			h := NewServerHandler(mockService, mockDataService, l)
 
 			var bodyBytes []byte
 			var err error
@@ -248,7 +253,7 @@ func TestLoginUser(t *testing.T) {
 
 // nolint: dupl
 func TestRefreshToken(t *testing.T) {
-	invalidCredErr := ErrInvalidCredentials
+	invalidCredErr := apperrors.ErrInvalidCredentials
 	someErr := errors.New("internal error")
 
 	testCases := []struct {
@@ -298,13 +303,14 @@ func TestRefreshToken(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockService := NewMockAuthService(t)
+			mockDataService := NewMockDataService(t)
 			if tc.setupMock != nil {
 				tc.setupMock(mockService)
 			}
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, l)
+			h := NewServerHandler(mockService, mockDataService, l)
 
 			var bodyBytes []byte
 			var err error

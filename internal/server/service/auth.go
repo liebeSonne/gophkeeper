@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
 	"github.com/liebeSonne/gophkeeper/internal/model"
 	"github.com/liebeSonne/gophkeeper/internal/repository"
-	"github.com/liebeSonne/gophkeeper/internal/server/handler"
 )
 
 type AuthService struct {
@@ -37,7 +37,7 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (mod
 		return model.Token{}, fmt.Errorf("hash password: %w", err)
 	}
 
-	user := &model.User{
+	user := model.User{
 		ID:        s.userRepo.NextID(ctx),
 		Login:     login,
 		Password:  string(hashedPassword),
@@ -56,14 +56,14 @@ func (s *AuthService) Login(ctx context.Context, login, password string) (model.
 	user, err := s.userRepo.GetByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Token{}, handler.ErrInvalidCredentials
+			return model.Token{}, apperrors.ErrInvalidCredentials
 		}
 		return model.Token{}, fmt.Errorf("get user: %w", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return model.Token{}, handler.ErrInvalidCredentials
+		return model.Token{}, apperrors.ErrInvalidCredentials
 	}
 
 	return s.generateTokenResponse(ctx, user.ID)
@@ -74,13 +74,13 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (mo
 	storedToken, err := s.tokenRepo.GetByTokenHash(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Token{}, handler.ErrInvalidCredentials
+			return model.Token{}, apperrors.ErrInvalidCredentials
 		}
 		return model.Token{}, fmt.Errorf("get token: %w", err)
 	}
 
 	if !storedToken.IsActive() {
-		return model.Token{}, handler.ErrInvalidCredentials
+		return model.Token{}, apperrors.ErrInvalidCredentials
 	}
 
 	err = s.tokenRepo.Revoke(ctx, storedToken.ID)
@@ -134,7 +134,7 @@ func (s *AuthService) generateTokenResponse(ctx context.Context, userID uuid.UUI
 	}
 
 	tokenHash := s.hashToken(refreshToken)
-	token := &model.RefreshToken{
+	token := model.RefreshToken{
 		ID:        s.tokenRepo.NextID(ctx),
 		UserID:    userID,
 		TokenHash: tokenHash,

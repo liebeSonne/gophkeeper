@@ -27,7 +27,7 @@ func (r *UserRepo) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *UserRepo) Store(ctx context.Context, user *model.User) error {
+func (r *UserRepo) Store(ctx context.Context, user model.User) error {
 	const query = `
 		INSERT INTO users (id, login, password, created_at) 
 		VALUES ($1, $2, $3, $4) 
@@ -46,36 +46,36 @@ func (r *UserRepo) Store(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (model.User, error) {
 	const query = `
 		SELECT id, login, password, created_at 
 		FROM users 
 		WHERE id = $1
 	`
-	user := &model.User{}
+	user := model.User{}
 	err := r.pool.QueryRow(ctx, query, id).Scan(&user.ID, &user.Login, &user.Password, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repository.ErrNotFound
+			return model.User{}, repository.ErrNotFound
 		}
-		return nil, fmt.Errorf("get user by id: %w", err)
+		return model.User{}, fmt.Errorf("get user by id: %w", err)
 	}
 	return user, nil
 }
 
-func (r *UserRepo) GetByLogin(ctx context.Context, login string) (*model.User, error) {
+func (r *UserRepo) GetByLogin(ctx context.Context, login string) (model.User, error) {
 	const query = `
 		SELECT id, login, password, created_at 
 		FROM users 
 		WHERE login = $1
 	`
-	user := &model.User{}
+	user := model.User{}
 	err := r.pool.QueryRow(ctx, query, login).Scan(&user.ID, &user.Login, &user.Password, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repository.ErrNotFound
+			return model.User{}, repository.ErrNotFound
 		}
-		return nil, fmt.Errorf("get user by login: %w", err)
+		return model.User{}, fmt.Errorf("get user by login: %w", err)
 	}
 	return user, nil
 }

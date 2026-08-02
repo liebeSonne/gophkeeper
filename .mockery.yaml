@@ -8,6 +8,7 @@ packages:
     interfaces:
       UserRepository: { }
       TokenRepository: { }
+      DataRepository: { }
   github.com/liebeSonne/gophkeeper/internal/server/auth:
     interfaces:
       Service: { }
@@ -17,3 +18,4 @@ packages:
   github.com/liebeSonne/gophkeeper/internal/server/handler:
     interfaces:
       AuthService: { }
+      DataService: { }
