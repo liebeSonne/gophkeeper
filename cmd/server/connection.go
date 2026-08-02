@@ -6,7 +6,6 @@ import (
 
 	"github.com/liebeSonne/gophkeeper/internal/config"
 	iocloser "github.com/liebeSonne/gophkeeper/internal/io/closer"
-	internallogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/repository/db"
 )
 
@@ -18,9 +17,8 @@ func newConnectionContainer(
 	ctx context.Context,
 	cfg config.ServerConfig,
 	closer *iocloser.MultiCloser,
-	logger internallogger.Logger,
 ) (*connectionContainer, error) {
-	database, err := db.New(ctx, cfg.DatabaseURI, logger)
+	database, err := db.New(ctx, cfg.DatabaseURI)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %w", err)
 	}

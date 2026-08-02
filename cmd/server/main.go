@@ -62,7 +62,7 @@ func runApp() error {
 		"https", cfg.EnableHTTPS,
 	)
 
-	connection, err := newConnectionContainer(ctx, cfg, &closer, logger)
+	connection, err := newConnectionContainer(ctx, cfg, &closer)
 	if err != nil {
 		logger.Fatal("error creating connection container", "err", err)
 	}
@@ -73,6 +73,8 @@ func runApp() error {
 	}
 
 	logger.Info("server ready", "address", cfg.ServerAddress)
+
+	_ = newDependencyContainer(connection)
 
 	<-ctx.Done()
 	gracefulShutdown(logger)
