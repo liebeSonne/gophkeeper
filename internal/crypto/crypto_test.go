@@ -139,6 +139,36 @@ func TestAESGCM_DifferentKeys(t *testing.T) {
 	assert.ErrorIs(t, err, ErrDecryptionFailed)
 }
 
+func TestAESGCM_RandomNonce(t *testing.T) {
+	key := makeKey(t, 32)
+	enc, err := NewAESGCM(key)
+	require.NoError(t, err)
+
+	plaintext := []byte("same plaintext")
+	ciphertexts := make(map[string]bool)
+
+	for i := 0; i < 10; i++ {
+		ct, err := enc.Encrypt(plaintext)
+		require.NoError(t, err)
+		assert.False(t, ciphertexts[string(ct)], "ciphertext should be unique (different nonce)")
+		ciphertexts[string(ct)] = true
+	}
+}
+
+func TestAESGCM_DecryptEmptyPlaintext(t *testing.T) {
+	key := makeKey(t, 32)
+	enc, err := NewAESGCM(key)
+	require.NoError(t, err)
+
+	ciphertext, err := enc.Encrypt([]byte{})
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(ciphertext), nonceSize)
+
+	decrypted, err := enc.Decrypt(ciphertext)
+	require.NoError(t, err)
+	assert.True(t, bytes.Equal([]byte{}, decrypted))
+}
+
 func makeKey(t *testing.T, size int) []byte {
 	t.Helper()
 	key := make([]byte, size)

@@ -11,3 +11,9 @@ packages:
   github.com/liebeSonne/gophkeeper/internal/server/auth:
     interfaces:
       Service: { }
+  github.com/liebeSonne/gophkeeper/internal/logger:
+    interfaces:
+      Logger: { }
+  github.com/liebeSonne/gophkeeper/internal/server/handler:
+    interfaces:
+      AuthService: { }
