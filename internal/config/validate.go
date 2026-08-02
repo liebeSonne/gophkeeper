@@ -13,6 +13,7 @@ var errInvalidServerAddressHost = errors.New("invalid server address host")
 var errInvalidServerAddressPort = errors.New("invalid server address port (must be 1-65535)")
 var errEmptyTLSCert = errors.New("empty TLS certificate")
 var errEmptyTLSKey = errors.New("empty TLS key")
+var errEmptyJWTSecret = errors.New("empty JWT secret")
 
 var validLogLevels = map[string]bool{
 	LogLevelDebug: true,
@@ -51,6 +52,10 @@ func validate(cfg ServerConfig) error {
 		if cfg.TLSKey == "" {
 			return errEmptyTLSKey
 		}
+	}
+
+	if cfg.JWTSecret == "" {
+		return errEmptyJWTSecret
 	}
 
 	return nil

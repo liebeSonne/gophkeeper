@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/liebeSonne/gophkeeper/internal/config"
 	internalio "github.com/liebeSonne/gophkeeper/internal/io/closer"
@@ -72,28 +75,56 @@ func runApp() error {
 		return fmt.Errorf("error running migrations: %w", err)
 	}
 
-	logger.Info("server ready", "address", cfg.ServerAddress)
+	deps := newDependencyContainer(connection, cfg, logger)
 
-	_ = newDependencyContainer(connection)
+	srv := &http.Server{
+		Addr:              cfg.ServerAddress,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		Handler:           deps.HTTPServerHandler,
+	}
+
+	go func() {
+		logger.Info("server ready", "address", cfg.ServerAddress)
+		var serveErr error
+		if cfg.EnableHTTPS {
+			serveErr = srv.ListenAndServeTLS(cfg.TLSCert, cfg.TLSKey)
+		} else {
+			serveErr = srv.ListenAndServe()
+		}
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			logger.Error("server error", "err", serveErr)
+		}
+	}()
 
 	<-ctx.Done()
-	gracefulShutdown(logger)
+	gracefulShutdown(srv, logger)
 
 	return nil
 }
 
 func runMigrations(connection *connectionContainer, logger internallogger.Logger) error {
 	logger.Info("running migrations...")
+
 	err := connection.Database.Migrate()
 	if err != nil {
 		return fmt.Errorf("error running migrations: %w", err)
 	}
+
 	logger.Info("migrations completed")
 	return nil
 }
 
-func gracefulShutdown(logger internallogger.Logger) {
+func gracefulShutdown(srv *http.Server, logger internallogger.Logger) {
 	logger.Info("starting server shutdown")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("server shutdown error", "err", err)
+	}
 
 	logger.Info("server shutdown complete")
 }

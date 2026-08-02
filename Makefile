@@ -31,10 +31,24 @@ clean: ## Remove binaries
 test: ## Run tests
 	@go test -v -cover ./...
 
+.PHONY: cover
+cover: ## Run tests coverage
+	@go test -coverprofile=coverage.out ./...
+	@grep -v -E "\.pb\.go|mock\.go|_gen\.go" coverage.out > coverage.clean.out
+	@go tool cover -func=coverage.clean.out | grep total
+
 .PHONY: lint
 lint: ## Run linter
 	@golangci-lint run ./...
 
 .PHONY: create-migration
-create-migration:
+create-migration: ## Run create migration
 	@migrate create -ext sql -dir ./migrations -format "20060102150405" $(name)
+
+.PHONY: generate-api
+generate-api: ## Run generate openapi
+	@go tool oapi-codegen -config ./api/swagger/config.yaml ./api/swagger/openapi.yml
+
+.PHONY: mocks
+mocks: ## Run generate mocks
+	@mockery

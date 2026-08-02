@@ -1,0 +1,13 @@
+dir: "{{.InterfaceDir}}"
+filename: "mock_{{ .InterfaceName | snakecase }}.gen.go"
+pkgname: '{{.SrcPackageName}}'
+structname: '{{.Mock}}{{.InterfaceName}}'
+template: testify
+packages:
+  github.com/liebeSonne/gophkeeper/internal/server/service:
+    interfaces:
+      UserRepository: { }
+      TokenRepository: { }
+  github.com/liebeSonne/gophkeeper/internal/server/auth:
+    interfaces:
+      Service: { }

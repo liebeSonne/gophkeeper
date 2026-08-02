@@ -8,6 +8,8 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	jwtSecret1 := "testsecret"
+
 	testCases := []struct {
 		name    string
 		cfg     ServerConfig
@@ -15,27 +17,27 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			name:    "valid config",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
 			wantErr: nil,
 		},
 		{
 			name:    "valid wildcard address",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:8080"},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:8080", JWTSecret: jwtSecret1},
 			wantErr: nil,
 		},
 		{
 			name:    "valid empty host",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: ":8080"},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: ":8080", JWTSecret: jwtSecret1},
 			wantErr: nil,
 		},
 		{
 			name:    "valid https config",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:443", EnableHTTPS: true, TLSCert: "/cert.pem", TLSKey: "/key.pem"},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: "0.0.0.0:443", EnableHTTPS: true, TLSCert: "/cert.pem", TLSKey: "/key.pem", JWTSecret: jwtSecret1},
 			wantErr: nil,
 		},
 		{
 			name:    "all log levels valid",
-			cfg:     ServerConfig{LogLevel: LogLevelDebug, ServerAddress: DefaultServerAddress},
+			cfg:     ServerConfig{LogLevel: LogLevelDebug, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
 			wantErr: nil,
 		},
 		{
@@ -72,6 +74,16 @@ func TestValidate(t *testing.T) {
 			name:    "https without key",
 			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, EnableHTTPS: true, TLSCert: "/cert.pem"},
 			wantErr: errEmptyTLSKey,
+		},
+		{
+			name:    "valid jwt secret",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1},
+			wantErr: nil,
+		},
+		{
+			name:    "empty jwt secret",
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: ""},
+			wantErr: errEmptyJWTSecret,
 		},
 	}
 

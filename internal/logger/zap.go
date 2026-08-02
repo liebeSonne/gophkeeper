@@ -84,3 +84,6 @@ func (l *zapLoggerImpl) Fatal(msg string, keysAndValues ...interface{}) {
 func (l *zapLoggerImpl) Sync() error {
 	return l.logger.Sync()
 }
+func (l *zapLoggerImpl) Print(v ...interface{}) {
+	l.logger.Infow(fmt.Sprint(v...))
+}
