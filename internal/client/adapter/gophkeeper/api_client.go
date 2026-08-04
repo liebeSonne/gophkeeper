@@ -10,9 +10,12 @@ import (
 	gophkeeper "github.com/liebeSonne/gophkeeper/pkg/client/gophkeeper"
 )
 
+type RefreshFunc func(ctx context.Context) error
+
 type Client struct {
 	*gophkeeper.ClientWithResponses
-	authToken string
+	authToken   string
+	refreshFunc RefreshFunc
 }
 
 func NewClient(baseURL string) (*Client, error) {
@@ -30,12 +33,14 @@ func (c *Client) SetAuthToken(token string) {
 	c.authToken = token
 }
 
-func (c *Client) authEditor(_ context.Context, req *http.Request) error {
-	if c.authToken == "" {
-		return errors.New("no auth token set")
-	}
+func (c *Client) SetRefreshToken(refreshFn RefreshFunc) {
+	c.refreshFunc = refreshFn
+}
 
-	req.Header.Set("Authorization", "Bearer "+c.authToken)
+func (c *Client) authEditor(_ context.Context, req *http.Request) error {
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 	return nil
 }
 
@@ -84,10 +89,10 @@ func (c *Client) LoginUser(ctx context.Context, login, password string) (*gophke
 	return resp, nil
 }
 
-func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*gophkeeper.RefreshTokenResponse, error) {
+func (c *Client) RefreshTokenAPI(ctx context.Context, refreshToken string) (*gophkeeper.RefreshTokenResponse, error) {
 	resp, err := c.RefreshTokenWithResponse(ctx, gophkeeper.RefreshTokenJSONRequestBody{
 		RefreshToken: refreshToken,
-	}, c.authEditor)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +112,18 @@ func (c *Client) CreateData(ctx context.Context, data gophkeeper.Data) (*gophkee
 		return nil, err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.CreateDataWithResponse(ctx, gophkeeper.CreateDataJSONRequestBody{
+			Data: &data,
+		}, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return nil, parseError(resp)
 	}
@@ -120,6 +137,16 @@ func (c *Client) GetData(ctx context.Context, id openapi_types.UUID) (*gophkeepe
 		return nil, err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.GetDataWithResponse(ctx, id, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return nil, parseError(resp)
 	}
@@ -128,23 +155,21 @@ func (c *Client) GetData(ctx context.Context, id openapi_types.UUID) (*gophkeepe
 }
 
 func (c *Client) ListData(ctx context.Context, page, pageSize *int, types *[]gophkeeper.DataType, query *string) (*gophkeeper.ListDataResponse, error) {
-	params := &gophkeeper.ListDataParams{}
-	if page != nil {
-		params.Page = page
-	}
-	if pageSize != nil {
-		params.PageSize = pageSize
-	}
-	if types != nil {
-		params.Types = types
-	}
-	if query != nil {
-		params.Query = query
-	}
+	params := buildListDataParams(page, pageSize, types, query)
 
 	resp, err := c.ListDataWithResponse(ctx, params, c.authEditor)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.ListDataWithResponse(ctx, params, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if resp.HTTPResponse.StatusCode >= 400 {
@@ -162,6 +187,18 @@ func (c *Client) UpdateData(ctx context.Context, id openapi_types.UUID, data gop
 		return nil, err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.UpdateDataWithResponse(ctx, id, gophkeeper.UpdateDataJSONRequestBody{
+			Data: &data,
+		}, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return nil, parseError(resp)
 	}
@@ -175,6 +212,16 @@ func (c *Client) DeleteData(ctx context.Context, id openapi_types.UUID) error {
 		return err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return refreshErr
+		}
+		resp, err = c.DeleteDataWithResponse(ctx, id, c.authEditor)
+		if err != nil {
+			return err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return parseError(resp)
 	}
@@ -186,6 +233,16 @@ func (c *Client) InitUpload(ctx context.Context, req gophkeeper.FileInitRequest)
 	resp, err := c.InitUploadWithResponse(ctx, req, c.authEditor)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.InitUploadWithResponse(ctx, req, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if resp.HTTPResponse.StatusCode >= 400 {
@@ -203,6 +260,18 @@ func (c *Client) CompleteUpload(ctx context.Context, fileID openapi_types.UUID) 
 		return nil, err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.CompleteUploadWithResponse(ctx, gophkeeper.FileCompleteRequest{
+			FileId: fileID,
+		}, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return nil, parseError(resp)
 	}
@@ -214,6 +283,16 @@ func (c *Client) DownloadFile(ctx context.Context, id openapi_types.UUID) (*goph
 	resp, err := c.DownloadFileWithResponse(ctx, id, c.authEditor)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.DownloadFileWithResponse(ctx, id, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if resp.HTTPResponse.StatusCode >= 400 {
@@ -229,6 +308,16 @@ func (c *Client) DeleteFile(ctx context.Context, id openapi_types.UUID) error {
 		return err
 	}
 
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return refreshErr
+		}
+		resp, err = c.DeleteFileWithResponse(ctx, id, c.authEditor)
+		if err != nil {
+			return err
+		}
+	}
+
 	if resp.HTTPResponse.StatusCode >= 400 {
 		return parseError(resp)
 	}
@@ -237,6 +326,48 @@ func (c *Client) DeleteFile(ctx context.Context, id openapi_types.UUID) error {
 }
 
 func (c *Client) ListFiles(ctx context.Context, page, pageSize *int, query *string) (*gophkeeper.ListFilesResponse, error) {
+	params := buildListFilesParams(page, pageSize, query)
+
+	resp, err := c.ListFilesWithResponse(ctx, params, c.authEditor)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.HTTPResponse.StatusCode == http.StatusUnauthorized && c.refreshFunc != nil {
+		if refreshErr := c.refreshFunc(ctx); refreshErr != nil {
+			return nil, refreshErr
+		}
+		resp, err = c.ListFilesWithResponse(ctx, params, c.authEditor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if resp.HTTPResponse.StatusCode >= 400 {
+		return nil, parseError(resp)
+	}
+
+	return resp, nil
+}
+
+func buildListDataParams(page, pageSize *int, types *[]gophkeeper.DataType, query *string) *gophkeeper.ListDataParams {
+	params := &gophkeeper.ListDataParams{}
+	if page != nil {
+		params.Page = page
+	}
+	if pageSize != nil {
+		params.PageSize = pageSize
+	}
+	if types != nil {
+		params.Types = types
+	}
+	if query != nil {
+		params.Query = query
+	}
+	return params
+}
+
+func buildListFilesParams(page, pageSize *int, query *string) *gophkeeper.ListFilesParams {
 	params := &gophkeeper.ListFilesParams{}
 	if page != nil {
 		params.Page = page
@@ -247,17 +378,7 @@ func (c *Client) ListFiles(ctx context.Context, page, pageSize *int, query *stri
 	if query != nil {
 		params.Query = query
 	}
-
-	resp, err := c.ListFilesWithResponse(ctx, params, c.authEditor)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.HTTPResponse.StatusCode >= 400 {
-		return nil, parseError(resp)
-	}
-
-	return resp, nil
+	return params
 }
 
 type APIError struct {
