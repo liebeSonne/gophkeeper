@@ -11,11 +11,11 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	authctx "github.com/liebeSonne/gophkeeper/internal/auth"
 	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
-	"github.com/liebeSonne/gophkeeper/internal/model"
-	"github.com/liebeSonne/gophkeeper/internal/repository"
+	authctx "github.com/liebeSonne/gophkeeper/internal/server/auth"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 const defaultPageSize = 20

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	"github.com/liebeSonne/gophkeeper/internal/auth"
+	"github.com/liebeSonne/gophkeeper/internal/server/auth"
 )
 
 type Middleware struct {

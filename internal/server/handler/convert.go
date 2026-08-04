@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	"github.com/liebeSonne/gophkeeper/internal/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
 )
 
 func strToPtr(s string) *string {

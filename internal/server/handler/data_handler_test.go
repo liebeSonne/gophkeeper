@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	authctx "github.com/liebeSonne/gophkeeper/internal/auth"
 	"github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
-	"github.com/liebeSonne/gophkeeper/internal/model"
+	authctx "github.com/liebeSonne/gophkeeper/internal/server/auth"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
 )
 
 func makeTestDataModel(t *testing.T, userID, id uuid.UUID) *model.Data {

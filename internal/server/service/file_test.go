@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/liebeSonne/gophkeeper/internal/storage"
 	"io"
 	"testing"
 
@@ -15,9 +16,8 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
 	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
-	"github.com/liebeSonne/gophkeeper/internal/model"
-	"github.com/liebeSonne/gophkeeper/internal/repository"
-	"github.com/liebeSonne/gophkeeper/internal/storage"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 func makeTestFile(userID, id uuid.UUID) model.File {

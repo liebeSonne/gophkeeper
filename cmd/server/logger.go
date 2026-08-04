@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/liebeSonne/gophkeeper/internal/config"
 	internallogger "github.com/liebeSonne/gophkeeper/internal/logger"
+	"github.com/liebeSonne/gophkeeper/internal/server/config"
 )
 
 var logLevelMap = map[string]internallogger.LogLevel{

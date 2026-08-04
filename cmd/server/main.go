@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/liebeSonne/gophkeeper/internal/config"
 	internalio "github.com/liebeSonne/gophkeeper/internal/io/closer"
 	internallogger "github.com/liebeSonne/gophkeeper/internal/logger"
+	"github.com/liebeSonne/gophkeeper/internal/server/config"
 )
 
 var buildVersion = "N/A"

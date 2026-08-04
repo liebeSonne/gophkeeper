@@ -13,8 +13,8 @@ import (
 
 	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
-	"github.com/liebeSonne/gophkeeper/internal/model"
-	"github.com/liebeSonne/gophkeeper/internal/repository"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 func hashPassword(password string) string {

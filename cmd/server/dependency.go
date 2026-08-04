@@ -10,13 +10,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	"github.com/liebeSonne/gophkeeper/internal/config"
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
-	"github.com/liebeSonne/gophkeeper/internal/repository/db"
-	"github.com/liebeSonne/gophkeeper/internal/server/auth"
+	"github.com/liebeSonne/gophkeeper/internal/server/config"
 	"github.com/liebeSonne/gophkeeper/internal/server/handler"
+	"github.com/liebeSonne/gophkeeper/internal/server/handler/auth"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository/db"
 	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
 

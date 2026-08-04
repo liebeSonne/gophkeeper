@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/liebeSonne/gophkeeper/internal/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

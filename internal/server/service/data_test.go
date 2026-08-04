@@ -12,8 +12,8 @@ import (
 
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
 	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
-	"github.com/liebeSonne/gophkeeper/internal/model"
-	"github.com/liebeSonne/gophkeeper/internal/repository"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 func makeTestPayload() []byte {

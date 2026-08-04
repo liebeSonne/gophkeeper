@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/liebeSonne/gophkeeper/internal/model"
-	"github.com/liebeSonne/gophkeeper/internal/repository"
+	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 type FileRepo struct {
