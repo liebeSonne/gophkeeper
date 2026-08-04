@@ -30,36 +30,31 @@ func SetVersion(version, date, commit string) {
 }
 
 func Setup() {
-	// init
 	initCmd.Flags().StringVar(&initServerAddress, "server-address", "", "server address (e.g. http://localhost:8080)")
 	initCmd.Flags().StringVar(&initStoragePath, "storage-path", "", "path to SQLite storage file")
 
-	// register
-	registerCmd.Flags().String("login", "", "username")
-	registerCmd.Flags().String("password", "", "password")
-
-	// login
 	loginCmd.Flags().String("login", "", "username")
 	loginCmd.Flags().String("password", "", "password")
 
-	// auth
+	registerCmd.Flags().String("login", "", "username")
+	registerCmd.Flags().String("password", "", "password")
+
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(registerCmd)
+	authCmd.AddCommand(logoutCmd)
+	authCmd.AddCommand(refreshCmd)
 
-	// data
 	dataCmd.AddCommand(dataListCmd)
 	dataCmd.AddCommand(dataGetCmd)
 	dataCmd.AddCommand(dataCreateCmd)
 	dataCmd.AddCommand(dataUpdateCmd)
 	dataCmd.AddCommand(dataDeleteCmd)
 
-	// file
 	fileCmd.AddCommand(fileUploadCmd)
 	fileCmd.AddCommand(fileDownloadCmd)
 	fileCmd.AddCommand(fileListCmd)
 	fileCmd.AddCommand(fileDeleteCmd)
 
-	// root
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(authCmd)

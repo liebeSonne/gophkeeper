@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-
 	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/liebeSonne/gophkeeper/internal/client/app"
 	"github.com/liebeSonne/gophkeeper/internal/client/config"
 	"github.com/liebeSonne/gophkeeper/internal/client/storage"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
@@ -59,6 +59,8 @@ at ~/.config/gophkeeper/ if it doesn't exist.`,
 		if err != nil {
 			return fmt.Errorf("init storage: %w", err)
 		}
+
+		app.Reset()
 
 		fmt.Printf("Configuration created successfully.\n")
 		fmt.Printf("  Config: %s\n", func() string {
