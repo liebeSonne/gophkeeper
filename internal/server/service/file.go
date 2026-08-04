@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/liebeSonne/gophkeeper/internal/storage"
 	"io"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
+	"github.com/liebeSonne/gophkeeper/internal/storage"
 )
 
 const (

@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	storage2 "github.com/liebeSonne/gophkeeper/internal/storage"
+
+	"github.com/liebeSonne/gophkeeper/internal/storage"
 
 	iocloser "github.com/liebeSonne/gophkeeper/internal/io/closer"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
@@ -13,7 +14,7 @@ import (
 
 type connectionContainer struct {
 	Database    *db.DB
-	MinIOClient storage2.MinIOClient
+	MinIOClient storage.MinIOClient
 }
 
 func newConnectionContainer(
@@ -53,10 +54,10 @@ func newConnectionContainer(
 	}, nil
 }
 
-func createMinIOClient(cfg config.ServerConfig, logger intlogger.Logger) (storage2.MinIOClient, error) {
+func createMinIOClient(cfg config.ServerConfig, logger intlogger.Logger) (storage.MinIOClient, error) {
 	if cfg.StorageEndpoint == "" {
 		return nil, nil
 	}
 
-	return storage2.NewMinIOClient(cfg.StorageEndpoint, cfg.StorageAccessKey, cfg.StorageSecretKey, cfg.StorageSecure, logger)
+	return storage.NewMinIOClient(cfg.StorageEndpoint, cfg.StorageAccessKey, cfg.StorageSecretKey, cfg.StorageSecure, logger)
 }
