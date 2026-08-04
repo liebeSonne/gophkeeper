@@ -257,6 +257,32 @@ func TestLoad(t *testing.T) {
 				VaultKeyPath:  DefaultVaultKeyPath,
 			},
 		},
+		{
+			name: "env storage config",
+			args: []string{"gophkeeper-server"},
+			setEnv: map[string]string{
+				EnvJWTSecret:        "testsecret",
+				EnvEncryptionKey:    testEncryptionKey,
+				EnvStorageEndpoint:  "localhost:9000",
+				EnvStorageAccessKey: "minioadmin",
+				EnvStorageSecretKey: "minioadmin",
+				EnvStorageBucket:    "mybucket",
+			},
+			want: ServerConfig{
+				LogLevel:         LogLevelInfo,
+				ServerAddress:    DefaultServerAddress,
+				DatabaseURI:      DefaultDatabaseURI,
+				JWTSecret:        "testsecret",
+				JWTAccessTTL:     DefaultJWTAccessTTL,
+				JWTRefreshTTL:    DefaultJWTRefreshTTL,
+				EncryptionKey:    testEncryptionKey,
+				StorageEndpoint:  "localhost:9000",
+				StorageAccessKey: "minioadmin",
+				StorageSecretKey: "minioadmin",
+				StorageBucket:    "mybucket",
+				StorageSecure:    false,
+			},
+		},
 	}
 
 	for _, tc := range testCases {

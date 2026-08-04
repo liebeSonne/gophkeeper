@@ -18,6 +18,8 @@ var errEmptyVaultAddress = errors.New("empty Vault address")
 var errEmptyVaultToken = errors.New("empty Vault token")
 var errEncryptionKeyNotSet = errors.New("encryption key not set (set --vault or --encryption-key)")
 var errBothVaultAndEncryptionKey = errors.New("cannot use both Vault and encryption key")
+var errEmptyStorageAccessKey = errors.New("empty storage access key (required when storage endpoint is set)")
+var errEmptyStorageSecretKey = errors.New("empty storage secret key (required when storage endpoint is set)")
 
 var validLogLevels = map[string]bool{
 	LogLevelDebug: true,
@@ -77,6 +79,15 @@ func validate(cfg ServerConfig) error {
 
 	if !cfg.EnableVault && cfg.EncryptionKey == "" {
 		return errEncryptionKeyNotSet
+	}
+
+	if cfg.StorageEndpoint != "" {
+		if cfg.StorageAccessKey == "" {
+			return errEmptyStorageAccessKey
+		}
+		if cfg.StorageSecretKey == "" {
+			return errEmptyStorageSecretKey
+		}
 	}
 
 	return nil
