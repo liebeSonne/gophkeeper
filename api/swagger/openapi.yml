@@ -10,6 +10,7 @@ tags:
   - name: system
   - name: auth
   - name: data
+  - name: file
 paths:
   /api/v1/health:
     get:
@@ -252,6 +253,145 @@ paths:
       responses:
         "204":
           description: Data entry deleted
+        "404":
+          $ref: '#/components/responses/notFound'
+
+  /api/v1/file/upload/init:
+    post:
+      summary: Initialize a new file upload
+      operationId: InitUpload
+      tags:
+        - file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/fileInitRequest'
+      responses:
+        "201":
+          description: File upload initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fileInitResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+
+  /api/v1/file/upload/chunk:
+    post:
+      summary: Upload a file chunk
+      operationId: UploadChunk
+      tags:
+        - file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file_id
+                - chunk_index
+                - data
+              properties:
+                file_id:
+                  type: string
+                  format: uuid
+                chunk_index:
+                  type: integer
+                  minimum: 0
+                data:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Chunk uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fileChunkResponse'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "404":
+          $ref: '#/components/responses/notFound'
+
+  /api/v1/file/upload/complete:
+    post:
+      summary: Complete file upload
+      operationId: CompleteUpload
+      tags:
+        - file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/fileCompleteRequest'
+      responses:
+        "200":
+          description: File upload completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fileInfo'
+        "400":
+          $ref: '#/components/responses/badRequest'
+        "404":
+          $ref: '#/components/responses/notFound'
+
+  /api/v1/file/{id}/download:
+    get:
+      summary: Download a file
+      operationId: DownloadFile
+      tags:
+        - file
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: '#/components/responses/notFound'
+
+  /api/v1/file/{id}:
+    delete:
+      summary: Delete a file
+      operationId: DeleteFile
+      tags:
+        - file
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: File ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: File deleted
         "404":
           $ref: '#/components/responses/notFound'
 
@@ -568,3 +708,102 @@ components:
           type: integer
         total_pages:
           type: integer
+
+    fileStatus:
+      type: string
+      enum:
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+      description: Status of the file upload
+
+    fileInitRequest:
+      type: object
+      required:
+        - name
+        - mime_type
+        - size
+        - chunks_count
+      properties:
+        name:
+          type: string
+          maxLength: 1024
+        mime_type:
+          type: string
+          maxLength: 256
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+        chunks_count:
+          type: integer
+          minimum: 1
+
+    fileInitResponse:
+      type: object
+      required:
+        - file_id
+        - chunks_count
+      properties:
+        file_id:
+          type: string
+          format: uuid
+        chunks_count:
+          type: integer
+
+    fileChunkResponse:
+      type: object
+      required:
+        - file_id
+        - chunk_index
+        - uploaded
+      properties:
+        file_id:
+          type: string
+          format: uuid
+        chunk_index:
+          type: integer
+        uploaded:
+          type: boolean
+
+    fileCompleteRequest:
+      type: object
+      required:
+        - file_id
+      properties:
+        file_id:
+          type: string
+          format: uuid
+
+    fileInfo:
+      type: object
+      required:
+        - id
+        - name
+        - mime_type
+        - size
+        - chunks_count
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        mime_type:
+          type: string
+        size:
+          type: integer
+          format: int64
+        chunks_count:
+          type: integer
+        status:
+          $ref: '#/components/schemas/fileStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
