@@ -197,7 +197,7 @@ func (h *serverHandler) CreateData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	response := server.CreateDataResponse{Data: dataInfo}
+	response := server.DataCreated{Data: dataInfo}
 
 	h.jsonEncode(w, response)
 }
@@ -296,7 +296,7 @@ func (h *serverHandler) ListData(w http.ResponseWriter, r *http.Request, params 
 
 	w.Header().Set("Content-Type", "application/json")
 
-	response := server.ListDataResponse{
+	response := server.DataList{
 		Items:      apiItems,
 		Total:      total,
 		Page:       page,
@@ -368,7 +368,7 @@ func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id op
 
 	w.Header().Set("Content-Type", "application/json")
 
-	response := server.UpdateDataResponse{Data: dataInfo}
+	response := server.DataUpdated{Data: dataInfo}
 
 	h.jsonEncode(w, response)
 }
@@ -697,7 +697,7 @@ func (h *serverHandler) ListFiles(w http.ResponseWriter, r *http.Request, params
 
 	w.Header().Set("Content-Type", "application/json")
 
-	response := server.ListFilesResponse{
+	response := server.FilesList{
 		Items:      apiItems,
 		Total:      total,
 		Page:       page,

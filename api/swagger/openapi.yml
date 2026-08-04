@@ -120,7 +120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/createDataResponse'
+                $ref: '#/components/schemas/dataCreated'
         "400":
           $ref: '#/components/responses/badRequest'
 
@@ -172,7 +172,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/listDataResponse'
+                $ref: '#/components/schemas/dataList'
         "400":
           $ref: '#/components/responses/badRequest'
 
@@ -229,7 +229,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateDataResponse'
+                $ref: '#/components/schemas/dataUpdated'
         "400":
           $ref: '#/components/responses/badRequest'
         "404":
@@ -433,7 +433,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/listFilesResponse'
+                $ref: '#/components/schemas/filesList'
         "400":
           $ref: '#/components/responses/badRequest'
 
@@ -577,7 +577,7 @@ components:
         data:
           $ref: '#/components/schemas/data'
 
-    createDataResponse:
+    dataCreated:
       type: object
       properties:
         data:
@@ -589,7 +589,7 @@ components:
         data:
           $ref: '#/components/schemas/data'
 
-    updateDataResponse:
+    dataUpdated:
       type: object
       properties:
         data:
@@ -757,7 +757,7 @@ components:
                 type: string
                 format: uuid
 
-    listDataResponse:
+    dataList:
       type: object
       required:
         - items
@@ -878,7 +878,7 @@ components:
           type: string
           format: date-time
 
-    listFilesResponse:
+    filesList:
       type: object
       required:
         - items
