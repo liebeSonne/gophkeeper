@@ -84,7 +84,7 @@ func TestDataService_CreateData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFileProvider := NewMockFileRepository(t)
+			mockFileProvider := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc, mockFileProvider)
@@ -166,7 +166,7 @@ func TestDataService_GetData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFileProvider := NewMockFileRepository(t)
+			mockFileProvider := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc, mockFileProvider)
@@ -259,7 +259,7 @@ func TestDataService_ListData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFileProvider := NewMockFileRepository(t)
+			mockFileProvider := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc, mockFileProvider)
@@ -322,7 +322,7 @@ func TestDataService_UpdateData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFileProvider := NewMockFileRepository(t)
+			mockFileProvider := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			var requestUser uuid.UUID
@@ -395,7 +395,7 @@ func TestDataService_DeleteData(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			tc.setupMocks(mockRepo)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFileProvider := NewMockFileRepository(t)
+			mockFileProvider := NewMockFileProvider(t)
 
 			svc := NewDataService(mockRepo, mockEnc, mockFileProvider)
 			err := svc.DeleteData(t.Context(), dataID, tc.requestUser)
@@ -420,13 +420,13 @@ func TestDataService_CreateData_FileType(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor, *MockFileRepository)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor, *MockFileProvider)
 		expectError bool
 		expectErr   error
 	}{
 		{
 			name: "successful create with valid file IDs",
-			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileRepository) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileProvider) {
 				fp.On("GetExistingFilesByUserID", mock.Anything, userID, []uuid.UUID{fileID1, fileID2}).Return([]uuid.UUID{fileID1, fileID2}, nil)
 				enc.On("Encrypt", payloadJSON).Return([]byte("encrypted"), nil)
 				repo.On("NextID", mock.Anything).Return(uuid.New())
@@ -435,14 +435,14 @@ func TestDataService_CreateData_FileType(t *testing.T) {
 		},
 		{
 			name: "empty file IDs",
-			setupMocks: func(_ *MockDataRepository, _ *crypto.MockEncryptor, _ *MockFileRepository) {
+			setupMocks: func(_ *MockDataRepository, _ *crypto.MockEncryptor, _ *MockFileProvider) {
 			},
 			expectError: true,
 			expectErr:   apperrors.ErrFileReferenceInvalid,
 		},
 		{
 			name: "file not owned by user",
-			setupMocks: func(_ *MockDataRepository, _ *crypto.MockEncryptor, fp *MockFileRepository) {
+			setupMocks: func(_ *MockDataRepository, _ *crypto.MockEncryptor, fp *MockFileProvider) {
 				fp.On("GetExistingFilesByUserID", mock.Anything, userID, []uuid.UUID{fileID1, fileID2}).Return([]uuid.UUID{fileID1}, nil)
 			},
 			expectError: true,
@@ -454,7 +454,7 @@ func TestDataService_CreateData_FileType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFP := NewMockFileRepository(t)
+			mockFP := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc, mockFP)
 
 			var payload []byte
@@ -489,14 +489,14 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor, *MockFileRepository)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor, *MockFileProvider)
 		newPayload  []byte
 		expectError bool
 		expectErr   error
 	}{
 		{
 			name: "file IDs unchanged - skip validation",
-			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, _ *MockFileRepository) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, _ *MockFileProvider) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{ID: dataID, UserID: userID, Type: model.DataTypeFile, Payload: []byte("encrypted-old")}, nil)
 				enc.On("Decrypt", []byte("encrypted-old")).Return(oldPayload, nil)
 				enc.On("Encrypt", mock.Anything).Return([]byte("encrypted-new"), nil)
@@ -506,7 +506,7 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 		},
 		{
 			name: "file IDs changed - validate new",
-			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileRepository) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileProvider) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{ID: dataID, UserID: userID, Type: model.DataTypeFile, Payload: []byte("encrypted-old")}, nil)
 				enc.On("Decrypt", []byte("encrypted-old")).Return(oldPayload, nil)
 				fp.On("GetExistingFilesByUserID", mock.Anything, userID, []uuid.UUID{fileID2, fileID3}).Return([]uuid.UUID{fileID2, fileID3}, nil)
@@ -520,7 +520,7 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 		},
 		{
 			name: "file IDs changed - validation fails",
-			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileRepository) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor, fp *MockFileProvider) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{ID: dataID, UserID: userID, Type: model.DataTypeFile, Payload: []byte("encrypted-old")}, nil)
 				enc.On("Decrypt", []byte("encrypted-old")).Return(oldPayload, nil)
 				fp.On("GetExistingFilesByUserID", mock.Anything, userID, []uuid.UUID{fileID2, fileID3}).Return([]uuid.UUID{fileID2}, nil)
@@ -538,7 +538,7 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			mockEnc := crypto.NewMockEncryptor(t)
-			mockFP := NewMockFileRepository(t)
+			mockFP := NewMockFileProvider(t)
 			tc.setupMocks(mockRepo, mockEnc, mockFP)
 
 			svc := NewDataService(mockRepo, mockEnc, mockFP)

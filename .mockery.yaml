@@ -10,6 +10,7 @@ packages:
       TokenRepository: { }
       DataRepository: { }
       FileRepository: { }
+      FileProvider: {}
   github.com/liebeSonne/gophkeeper/internal/server/handler/auth:
     interfaces:
       Service: { }
