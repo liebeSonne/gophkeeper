@@ -45,9 +45,16 @@ lint: ## Run linter
 create-migration: ## Run create migration
 	@migrate create -ext sql -dir ./migrations -format "20060102150405" $(name)
 
-.PHONY: generate-api
-generate-api: ## Run generate openapi
+.PHONY: generate-api-server
+generate-api-server: ## Run generate openapi server
 	@go tool oapi-codegen -config ./api/swagger/config.yaml ./api/swagger/openapi.yml
+
+.PHONY: generate-client
+generate-client: ## Run generate openapi client
+	@go tool oapi-codegen -config ./api/swagger/client_config.yaml ./api/swagger/openapi.yml
+
+.PHONY: generate
+generate: generate-api-server generate-client ## Generate all API code
 
 .PHONY: mocks
 mocks: ## Run generate mocks

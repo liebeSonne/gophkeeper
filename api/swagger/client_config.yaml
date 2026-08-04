@@ -1,0 +1,6 @@
+package: gophkeeper
+generate:
+  models: true
+  client: true
+  embedded-spec: true
+output: pkg/client/gophkeeper/client.gen.go
