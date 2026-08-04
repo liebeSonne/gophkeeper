@@ -32,7 +32,7 @@ services:
       timeout: 5s
       retries: 5
 
- minio:
+  minio:
     image: minio/minio:latest
     command: server /data --console-address :9001
     environment:
