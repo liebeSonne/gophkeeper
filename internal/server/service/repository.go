@@ -30,3 +30,14 @@ type DataRepository interface {
 	Count(ctx context.Context, spec db.ListSpec) (int, error)
 	Delete(ctx context.Context, ids []uuid.UUID) error
 }
+
+type FileRepository interface {
+	NextID(ctx context.Context) uuid.UUID
+	StoreFile(ctx context.Context, file model.File) error
+	UpdateFileStatus(ctx context.Context, id uuid.UUID, status model.FileStatus) error
+	GetFileByID(ctx context.Context, id uuid.UUID) (model.File, error)
+	DeleteFile(ctx context.Context, id uuid.UUID) error
+	StoreFileChunks(ctx context.Context, chunks []model.FileChunk) error
+	UpdateChunkUploaded(ctx context.Context, fileID uuid.UUID, chunkIndex int, uploaded bool) error
+	GetUploadedChunksCount(ctx context.Context, fileID uuid.UUID) (int, error)
+}

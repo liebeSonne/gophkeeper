@@ -22,7 +22,6 @@ import (
 
 type dependencyContainer struct {
 	HTTPServerHandler http.Handler
-	Encryptor         crypto.Encryptor
 }
 
 func newDependencyContainer(
@@ -36,6 +35,7 @@ func newDependencyContainer(
 	userRepo := db.NewUserRepo(pool)
 	tokenRepo := db.NewTokenRepo(pool)
 	dataRepo := db.NewDataRepo(pool)
+	fileRepo := db.NewFileRepo(pool)
 
 	jwtService := jwt.NewJWT(cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
@@ -46,10 +46,11 @@ func newDependencyContainer(
 	}
 
 	dataService := service.NewDataService(dataRepo, encryptor)
+	fileService := service.NewFileService(fileRepo, encryptor, con.MinIOClient, cfg.StorageBucket, logger)
 
 	// HTTP Server
 	authMiddleware := auth.NewAuthMiddleware(authService)
-	serverHandler := handler.NewServerHandler(authService, dataService, logger)
+	serverHandler := handler.NewServerHandler(authService, dataService, fileService, logger)
 
 	r := chi.NewMux()
 	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))
@@ -58,7 +59,6 @@ func newDependencyContainer(
 
 	return &dependencyContainer{
 		HTTPServerHandler: httpServerHandler,
-		Encryptor:         encryptor,
 	}, nil
 }
 

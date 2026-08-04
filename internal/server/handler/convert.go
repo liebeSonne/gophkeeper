@@ -108,3 +108,68 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 
 	return info, nil
 }
+
+func convertFileToAPI(file model.File) (server.FileInfo, error) {
+	status, err := convertFileStatusToAPI(file.Status)
+	if err != nil {
+		return server.FileInfo{}, fmt.Errorf("error converting file status: %w", err)
+	}
+	return server.FileInfo{
+		Id:          file.ID,
+		Name:        file.Name,
+		MimeType:    file.MimeType,
+		Size:        file.Size,
+		ChunksCount: file.ChunksCount,
+		Status:      status,
+		CreatedAt:   file.CreatedAt,
+		UpdatedAt:   file.UpdatedAt,
+	}, nil
+}
+
+func convertFileStatusToAPI(status model.FileStatus) (server.FileStatus, error) {
+	switch status {
+	case model.FileStatusCompleted:
+		return server.COMPLETED, nil
+	case model.FileStatusFailed:
+		return server.FAILED, nil
+	case model.FileStatusInProgress:
+		return server.INPROGRESS, nil
+	default:
+		return "", fmt.Errorf("unknown file stataus: %s", status)
+	}
+}
+
+func convertDataMetadataFromAPIData(data *server.Data) string {
+	var metadata string
+	val, valErr := data.ValueByDiscriminator()
+	if valErr == nil {
+		switch d := val.(type) {
+		case server.LoginPasswordData:
+			if d.Metadata != nil {
+				metadata = *d.Metadata
+			}
+		case server.BankCardData:
+			if d.Metadata != nil {
+				metadata = *d.Metadata
+			}
+		case server.TextData:
+			if d.Metadata != nil {
+				metadata = *d.Metadata
+			}
+		}
+	}
+	return metadata
+}
+
+func convertDataTypeFromAPIData(data *server.Data) (model.DataType, error) {
+	discriminator, err := data.Discriminator()
+	if err != nil {
+		return 0, fmt.Errorf("invalid data type: %w", err)
+	}
+	dataType, err := convertDataTypeFromAPI(server.DataType(discriminator))
+
+	if err != nil {
+		return 0, fmt.Errorf("invalid data type %s: %w", discriminator, err)
+	}
+	return dataType, nil
+}

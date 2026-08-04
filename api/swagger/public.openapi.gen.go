@@ -73,6 +73,27 @@ func (e DataType) Valid() bool {
 	}
 }
 
+// Defines values for FileStatus.
+const (
+	COMPLETED  FileStatus = "COMPLETED"
+	FAILED     FileStatus = "FAILED"
+	INPROGRESS FileStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the FileStatus enum.
+func (e FileStatus) Valid() bool {
+	switch e {
+	case COMPLETED:
+		return true
+	case FAILED:
+		return true
+	case INPROGRESS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LoginPasswordDataType.
 const (
 	LoginPasswordDataTypeLOGINPASSWORD LoginPasswordDataType = "LOGIN_PASSWORD"
@@ -214,6 +235,49 @@ type Error struct {
 	// Message Error message
 	Message string `json:"message"`
 }
+
+// FileChunkResponse defines model for fileChunkResponse.
+type FileChunkResponse struct {
+	ChunkIndex int                `json:"chunk_index"`
+	FileId     openapi_types.UUID `json:"file_id"`
+	Uploaded   bool               `json:"uploaded"`
+}
+
+// FileCompleteRequest defines model for fileCompleteRequest.
+type FileCompleteRequest struct {
+	FileId openapi_types.UUID `json:"file_id"`
+}
+
+// FileInfo defines model for fileInfo.
+type FileInfo struct {
+	ChunksCount int                `json:"chunks_count"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Id          openapi_types.UUID `json:"id"`
+	MimeType    string             `json:"mime_type"`
+	Name        string             `json:"name"`
+	Size        int64              `json:"size"`
+
+	// Status Status of the file upload
+	Status    FileStatus `json:"status"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+// FileInitRequest defines model for fileInitRequest.
+type FileInitRequest struct {
+	ChunksCount int    `json:"chunks_count"`
+	MimeType    string `json:"mime_type"`
+	Name        string `json:"name"`
+	Size        int64  `json:"size"`
+}
+
+// FileInitResponse defines model for fileInitResponse.
+type FileInitResponse struct {
+	ChunksCount int                `json:"chunks_count"`
+	FileId      openapi_types.UUID `json:"file_id"`
+}
+
+// FileStatus Status of the file upload
+type FileStatus string
 
 // HealthResponse defines model for healthResponse.
 type HealthResponse struct {
@@ -367,6 +431,13 @@ type ListDataParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// UploadChunkMultipartBody defines parameters for UploadChunk.
+type UploadChunkMultipartBody struct {
+	ChunkIndex int                `json:"chunk_index"`
+	Data       openapi_types.File `json:"data"`
+	FileId     openapi_types.UUID `json:"file_id"`
+}
+
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = LoginRequest
 
@@ -381,6 +452,15 @@ type CreateDataJSONRequestBody = CreateDataRequest
 
 // UpdateDataJSONRequestBody defines body for UpdateData for application/json ContentType.
 type UpdateDataJSONRequestBody = UpdateDataRequest
+
+// UploadChunkMultipartRequestBody defines body for UploadChunk for multipart/form-data ContentType.
+type UploadChunkMultipartRequestBody UploadChunkMultipartBody
+
+// CompleteUploadJSONRequestBody defines body for CompleteUpload for application/json ContentType.
+type CompleteUploadJSONRequestBody = FileCompleteRequest
+
+// InitUploadJSONRequestBody defines body for InitUpload for application/json ContentType.
+type InitUploadJSONRequestBody = FileInitRequest
 
 // AsLoginPasswordData returns the union data inside the Data as a LoginPasswordData
 func (t Data) AsLoginPasswordData() (LoginPasswordData, error) {
@@ -682,6 +762,21 @@ type ServerInterface interface {
 	// UpdateData Update a data entry
 	// (PUT /api/v1/data/{id})
 	UpdateData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// UploadChunk Upload a file chunk
+	// (POST /api/v1/file/upload/chunk)
+	UploadChunk(w http.ResponseWriter, r *http.Request)
+	// CompleteUpload Complete file upload
+	// (POST /api/v1/file/upload/complete)
+	CompleteUpload(w http.ResponseWriter, r *http.Request)
+	// InitUpload Initialize a new file upload
+	// (POST /api/v1/file/upload/init)
+	InitUpload(w http.ResponseWriter, r *http.Request)
+	// DeleteFile Delete a file
+	// (DELETE /api/v1/file/{id})
+	DeleteFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// DownloadFile Download a file
+	// (GET /api/v1/file/{id}/download)
+	DownloadFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// HealthCheck Health check
 	// (GET /api/v1/health)
 	HealthCheck(w http.ResponseWriter, r *http.Request)
@@ -736,6 +831,36 @@ func (_ Unimplemented) GetData(w http.ResponseWriter, r *http.Request, id openap
 // UpdateData Update a data entry
 // (PUT /api/v1/data/{id})
 func (_ Unimplemented) UpdateData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadChunk Upload a file chunk
+// (POST /api/v1/file/upload/chunk)
+func (_ Unimplemented) UploadChunk(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CompleteUpload Complete file upload
+// (POST /api/v1/file/upload/complete)
+func (_ Unimplemented) CompleteUpload(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// InitUpload Initialize a new file upload
+// (POST /api/v1/file/upload/init)
+func (_ Unimplemented) InitUpload(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteFile Delete a file
+// (DELETE /api/v1/file/{id})
+func (_ Unimplemented) DeleteFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DownloadFile Download a file
+// (GET /api/v1/file/{id}/download)
+func (_ Unimplemented) DownloadFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -960,6 +1085,100 @@ func (siw *ServerInterfaceWrapper) UpdateData(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// UploadChunk operation middleware
+func (siw *ServerInterfaceWrapper) UploadChunk(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadChunk(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteUpload operation middleware
+func (siw *ServerInterfaceWrapper) CompleteUpload(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteUpload(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// InitUpload operation middleware
+func (siw *ServerInterfaceWrapper) InitUpload(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InitUpload(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteFile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteFile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadFile operation middleware
+func (siw *ServerInterfaceWrapper) DownloadFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadFile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // HealthCheck operation middleware
 func (siw *ServerInterfaceWrapper) HealthCheck(w http.ResponseWriter, r *http.Request) {
 
@@ -1114,6 +1333,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/v1/data/{id}", wrapper.UpdateData)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/file/upload/init", wrapper.InitUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/file/upload/chunk", wrapper.UploadChunk)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/file/upload/complete", wrapper.CompleteUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/file/{id}/download", wrapper.DownloadFile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/file/{id}", wrapper.DeleteFile)
+	})
 
 	return r
 }
@@ -1123,38 +1357,46 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"AP//",
+	"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",
+	"3QC5vl7/NwAA//8=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

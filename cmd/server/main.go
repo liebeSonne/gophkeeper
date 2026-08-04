@@ -56,7 +56,7 @@ func runApp() error {
 		syncErr := logger.Sync()
 		if syncErr != nil {
 			fmt.Println(fmt.Errorf("error syncing logger: %w", syncErr))
-			logger.Warn("error syncing logger: %v", syncErr)
+			logger.Warn("error syncing logger", "err", syncErr)
 		}
 	}()
 
@@ -65,7 +65,7 @@ func runApp() error {
 		"https", cfg.EnableHTTPS,
 	)
 
-	connection, err := newConnectionContainer(ctx, cfg, &closer)
+	connection, err := newConnectionContainer(ctx, cfg, &closer, logger)
 	if err != nil {
 		logger.Fatal("error creating connection container", "err", err)
 	}

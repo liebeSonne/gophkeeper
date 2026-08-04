@@ -43,7 +43,8 @@ func TestHealthCheck(t *testing.T) {
 
 			mockDataService := NewMockDataService(t)
 
-			h := NewServerHandler(mockService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockService, mockDataService, mockFileService, l)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/health", http.NoBody)
 			w := httptest.NewRecorder()
@@ -125,7 +126,8 @@ func TestRegisterUser(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockService, mockDataService, mockFileService, l)
 
 			var bodyBytes []byte
 			var err error
@@ -220,7 +222,8 @@ func TestLoginUser(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockService, mockDataService, mockFileService, l)
 
 			var bodyBytes []byte
 			var err error
@@ -310,7 +313,8 @@ func TestRefreshToken(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockService, mockDataService, mockFileService, l)
 
 			var bodyBytes []byte
 			var err error

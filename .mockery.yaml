@@ -9,6 +9,7 @@ packages:
       UserRepository: { }
       TokenRepository: { }
       DataRepository: { }
+      FileRepository: { }
   github.com/liebeSonne/gophkeeper/internal/server/auth:
     interfaces:
       Service: { }
@@ -19,3 +20,10 @@ packages:
     interfaces:
       AuthService: { }
       DataService: { }
+      FileService: { }
+  github.com/liebeSonne/gophkeeper/internal/crypto:
+    interfaces:
+      Encryptor: { }
+  github.com/liebeSonne/gophkeeper/internal/storage:
+    interfaces:
+      MinIOClient: { }

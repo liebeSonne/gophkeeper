@@ -3,7 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -21,17 +23,20 @@ const defaultPageSize = 20
 type serverHandler struct {
 	authService AuthService
 	dataService DataService
+	fileService FileService
 	logger      intlogger.Logger
 }
 
 func NewServerHandler(
 	authService AuthService,
 	dataService DataService,
+	fileService FileService,
 	logger intlogger.Logger,
 ) server.ServerInterface {
 	return &serverHandler{
 		authService: authService,
 		dataService: dataService,
+		fileService: fileService,
 		logger:      logger,
 	}
 }
@@ -39,14 +44,12 @@ func NewServerHandler(
 func (h *serverHandler) HealthCheck(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	enc := json.NewEncoder(w)
-	err := enc.Encode(server.HealthResponse{
+
+	response := server.HealthResponse{
 		Status: "ok",
-	})
-	if err != nil {
-		h.logger.Error("error on encode response", "err", err)
-		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -74,16 +77,12 @@ func (h *serverHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := convertTokenToAPI(token)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	enc := json.NewEncoder(w)
-	err = enc.Encode(resp)
-	if err != nil {
-		h.logger.Error("error on encode response", "err", err)
-		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-	}
+
+	response := convertTokenToAPI(token)
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -111,15 +110,11 @@ func (h *serverHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := convertTokenToAPI(token)
-
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	err = enc.Encode(resp)
-	if err != nil {
-		h.logger.Error("error on encode response", "err", err)
-		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-	}
+
+	response := convertTokenToAPI(token)
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
@@ -147,15 +142,11 @@ func (h *serverHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := convertTokenToAPI(token)
-
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	err = enc.Encode(resp)
-	if err != nil {
-		h.logger.Error("error on encode response", "err", err)
-		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-	}
+
+	response := convertTokenToAPI(token)
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) CreateData(w http.ResponseWriter, r *http.Request) {
@@ -176,14 +167,9 @@ func (h *serverHandler) CreateData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	discriminator, err := req.Data.Discriminator()
+	dataType, err := convertDataTypeFromAPIData(req.Data)
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, "invalid data type")
-		return
-	}
-	dataType, err := convertDataTypeFromAPI(server.DataType(discriminator))
-	if err != nil {
-		h.writeError(w, http.StatusBadRequest, "invalid data type: "+discriminator)
 		return
 	}
 
@@ -193,25 +179,7 @@ func (h *serverHandler) CreateData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var metadata string
-	val, valErr := req.Data.ValueByDiscriminator()
-	if valErr == nil {
-		switch d := val.(type) {
-		case server.LoginPasswordData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		case server.BankCardData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		case server.TextData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		}
-	}
-
+	metadata := convertDataMetadataFromAPIData(req.Data)
 	result, err := h.dataService.CreateData(ctx, userID, payloadJSON, dataType, metadata)
 	if err != nil {
 		h.logger.Error("error on create data", "err", err)
@@ -228,9 +196,10 @@ func (h *serverHandler) CreateData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(server.CreateDataResponse{Data: dataInfo}); err != nil {
-		h.logger.Error("error on encode response", "err", err)
-	}
+
+	response := server.CreateDataResponse{Data: dataInfo}
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) GetData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
@@ -270,7 +239,8 @@ func (h *serverHandler) GetData(w http.ResponseWriter, r *http.Request, id opena
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(dataInfo)
+
+	h.jsonEncode(w, dataInfo)
 }
 
 func (h *serverHandler) ListData(w http.ResponseWriter, r *http.Request, params server.ListDataParams) {
@@ -325,13 +295,16 @@ func (h *serverHandler) ListData(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(server.ListDataResponse{
+
+	response := server.ListDataResponse{
 		Items:      apiItems,
 		Total:      total,
 		Page:       page,
 		PageSize:   pageSize,
 		TotalPages: totalPages,
-	})
+	}
+
+	h.jsonEncode(w, response)
 }
 
 func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
@@ -358,14 +331,9 @@ func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id op
 		return
 	}
 
-	discriminator, err := req.Data.Discriminator()
+	dataType, err := convertDataTypeFromAPIData(req.Data)
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, "invalid data type")
-		return
-	}
-	dataType, err := convertDataTypeFromAPI(server.DataType(discriminator))
-	if err != nil {
-		h.writeError(w, http.StatusBadRequest, "invalid data type: "+discriminator)
 		return
 	}
 
@@ -375,25 +343,7 @@ func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id op
 		return
 	}
 
-	var metadata string
-	val, valErr := req.Data.ValueByDiscriminator()
-	if valErr == nil {
-		switch d := val.(type) {
-		case server.LoginPasswordData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		case server.BankCardData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		case server.TextData:
-			if d.Metadata != nil {
-				metadata = *d.Metadata
-			}
-		}
-	}
-
+	metadata := convertDataMetadataFromAPIData(req.Data)
 	result, err := h.dataService.UpdateData(ctx, dataID, userID, payloadJSON, dataType, metadata)
 	if err != nil {
 		if errors.Is(err, apperrors.ErrDataNotFound) {
@@ -417,9 +367,13 @@ func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id op
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(server.UpdateDataResponse{Data: dataInfo})
+
+	response := server.UpdateDataResponse{Data: dataInfo}
+
+	h.jsonEncode(w, response)
 }
 
+// nolint: dupl
 func (h *serverHandler) DeleteData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	ctx := r.Context()
 	userID, ok := authctx.GetUserIDFromContext(ctx)
@@ -452,13 +406,252 @@ func (h *serverHandler) DeleteData(w http.ResponseWriter, r *http.Request, id op
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *serverHandler) InitUpload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req server.FileInitRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name == "" || req.MimeType == "" || req.Size < 0 || req.ChunksCount < 1 {
+		h.writeError(w, http.StatusBadRequest, "invalid request parameters")
+		return
+	}
+
+	file, err := h.fileService.InitUpload(ctx, userID, req.Name, req.MimeType, req.Size, req.ChunksCount)
+	if err != nil {
+		h.logger.Error("error on init upload", "err", err)
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	response := server.FileInitResponse{
+		FileId:      file.ID,
+		ChunksCount: file.ChunksCount,
+	}
+
+	h.jsonEncode(w, response)
+}
+
+func (h *serverHandler) UploadChunk(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid multipart form")
+		return
+	}
+
+	fileIDStr := r.FormValue("file_id")
+	fileID, err := uuid.Parse(fileIDStr)
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid file_id")
+		return
+	}
+
+	chunkIndexStr := r.FormValue("chunk_index")
+	chunkIndex := 0
+	if chunkIndexStr != "" {
+		n, errAtoi := strconv.Atoi(chunkIndexStr)
+		if errAtoi != nil {
+			h.writeError(w, http.StatusBadRequest, "invalid chunk_index")
+			return
+		}
+		chunkIndex = n
+	}
+
+	dataFile, _, err := r.FormFile("data")
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "missing data file")
+		return
+	}
+	defer func() {
+		errClose := dataFile.Close()
+		if errClose != nil {
+			h.logger.Error("error on close data file", "err", errClose)
+		}
+	}()
+
+	data, err := io.ReadAll(dataFile)
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "failed to read chunk data")
+		return
+	}
+
+	err = h.fileService.UploadChunk(ctx, fileID, userID, chunkIndex, data)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrFileNotFound) {
+			h.writeError(w, http.StatusNotFound, "file not found")
+			return
+		}
+		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+			h.writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		h.logger.Error("error on upload chunk", "err", err)
+		h.writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	response := server.FileChunkResponse{
+		FileId:     fileID,
+		ChunkIndex: chunkIndex,
+		Uploaded:   true,
+	}
+
+	h.jsonEncode(w, response)
+}
+
+func (h *serverHandler) CompleteUpload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req server.FileCompleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	fileID := req.FileId
+	if fileID == uuid.Nil {
+		h.writeError(w, http.StatusBadRequest, "invalid file_id")
+		return
+	}
+
+	file, err := h.fileService.CompleteUpload(ctx, fileID, userID)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrFileNotFound) {
+			h.writeError(w, http.StatusNotFound, "file not found")
+			return
+		}
+		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+			h.writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		h.logger.Error("error on complete upload", "err", err)
+		h.writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	fileInfo, err := convertFileToAPI(file)
+	if err != nil {
+		h.logger.Error("error on convert file", "err", err)
+		h.writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	h.jsonEncode(w, fileInfo)
+}
+
+func (h *serverHandler) DownloadFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	fileID := id
+	if fileID == uuid.Nil {
+		h.writeError(w, http.StatusBadRequest, "invalid file ID")
+		return
+	}
+
+	reader, mimeType, size, err := h.fileService.DownloadFile(ctx, fileID, userID)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrFileNotFound) {
+			h.writeError(w, http.StatusNotFound, "file not found")
+			return
+		}
+		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+			h.writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		h.logger.Error("error on download file", "err", err)
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return
+	}
+	defer func() {
+		errClose := reader.Close()
+		if errClose != nil {
+			h.logger.Error("error on close data file", "err", errClose)
+		}
+	}()
+
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.Copy(w, reader)
+}
+
+// nolint: dupl
+func (h *serverHandler) DeleteFile(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	fileID := id
+	if fileID == uuid.Nil {
+		h.writeError(w, http.StatusBadRequest, "invalid file ID")
+		return
+	}
+
+	err := h.fileService.DeleteFile(ctx, fileID, userID)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrFileNotFound) {
+			h.writeError(w, http.StatusNotFound, "file not found")
+			return
+		}
+		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+			h.writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		h.logger.Error("error on delete file", "err", err)
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *serverHandler) writeError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	h.jsonEncode(w, server.Error{Message: message})
+}
+
+func (h *serverHandler) jsonEncode(w http.ResponseWriter, v any) {
 	enc := json.NewEncoder(w)
-	err := enc.Encode(server.Error{Message: message})
+	err := enc.Encode(v)
 	if err != nil {
-		h.logger.Error("error on encode error message")
+		h.logger.Error("error on encode response", "err", err)
 		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 }

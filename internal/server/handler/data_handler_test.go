@@ -19,22 +19,19 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/model"
 )
 
-func makeTestDataModel(userID, id uuid.UUID) *model.Data {
+func makeTestDataModel(t *testing.T, userID, id uuid.UUID) *model.Data {
+	payload, err := json.Marshal(model.LoginPasswordPayload{Login: "testuser", Password: "testpass"})
+	assert.NoError(t, err)
 	return &model.Data{
 		ID:       id,
 		UserID:   userID,
 		Type:     model.DataTypeLoginPassword,
-		Payload:  mustJSON(model.LoginPasswordPayload{Login: "testuser", Password: "testpass"}),
+		Payload:  payload,
 		Metadata: "test metadata",
 	}
 }
 
-func mustJSON(v interface{}) []byte {
-	b, _ := json.Marshal(v)
-	return b
-}
-
-func withUserID(r *http.Request, userID uuid.UUID) *http.Request {
+func makeRequestWithUserID(r *http.Request, userID uuid.UUID) *http.Request {
 	ctx := authctx.CreateTokenContext(r.Context(), userID)
 	return r.WithContext(ctx)
 }
@@ -66,7 +63,7 @@ func TestCreateData(t *testing.T) {
 			},
 			setupMock: func(m *MockDataService) {
 				m.On("CreateData", mock.Anything, userID, mock.Anything, model.DataTypeLoginPassword, "").
-					Return(*makeTestDataModel(userID, dataID), nil)
+					Return(*makeTestDataModel(t, userID, dataID), nil)
 			},
 			expectedStatus: http.StatusCreated,
 		},
@@ -102,7 +99,8 @@ func TestCreateData(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockAuthService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
 
 			var bodyBytes []byte
 			var err error
@@ -116,7 +114,7 @@ func TestCreateData(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/data", bytes.NewReader(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
 			if tc.withUser {
-				req = withUserID(req, userID)
+				req = makeRequestWithUserID(req, userID)
 			}
 			w := httptest.NewRecorder()
 
@@ -143,7 +141,7 @@ func TestGetData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("GetData", mock.Anything, testDataID, userID).
-					Return(*makeTestDataModel(userID, testDataID), nil)
+					Return(*makeTestDataModel(t, userID, testDataID), nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -182,11 +180,12 @@ func TestGetData(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockAuthService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/data/"+testDataID.String(), http.NoBody)
 			if tc.withUser {
-				req = withUserID(req, userID)
+				req = makeRequestWithUserID(req, userID)
 			}
 			w := httptest.NewRecorder()
 
@@ -211,7 +210,7 @@ func TestListData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("ListData", mock.Anything, userID, 1, 20, []model.DataType(nil), (*string)(nil)).
-					Return([]model.Data{*makeTestDataModel(userID, uuid.New())}, 1, nil)
+					Return([]model.Data{*makeTestDataModel(t, userID, uuid.New())}, 1, nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -232,11 +231,12 @@ func TestListData(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockAuthService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
 
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/data/list", http.NoBody)
 			if tc.withUser {
-				req = withUserID(req, userID)
+				req = makeRequestWithUserID(req, userID)
 			}
 			w := httptest.NewRecorder()
 
@@ -263,7 +263,7 @@ func TestUpdateData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("UpdateData", mock.Anything, testDataID, userID, mock.Anything, model.DataTypeLoginPassword, "").
-					Return(*makeTestDataModel(userID, testDataID), nil)
+					Return(*makeTestDataModel(t, userID, testDataID), nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -293,7 +293,8 @@ func TestUpdateData(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockAuthService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
 
 			body := server.UpdateDataRequest{
 				Data: func() *server.Data {
@@ -311,7 +312,7 @@ func TestUpdateData(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPut, "/api/v1/data/"+testDataID.String(), bytes.NewReader(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
 			if tc.withUser {
-				req = withUserID(req, userID)
+				req = makeRequestWithUserID(req, userID)
 			}
 			w := httptest.NewRecorder()
 
@@ -374,11 +375,12 @@ func TestDeleteData(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
 			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
 
-			h := NewServerHandler(mockAuthService, mockDataService, l)
+			mockFileService := NewMockFileService(t)
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
 
 			req := httptest.NewRequest(http.MethodDelete, "/api/v1/data/"+testDataID.String(), http.NoBody)
 			if tc.withUser {
-				req = withUserID(req, userID)
+				req = makeRequestWithUserID(req, userID)
 			}
 			w := httptest.NewRecorder()
 

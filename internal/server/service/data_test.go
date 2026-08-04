@@ -16,26 +16,6 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/repository"
 )
 
-type mockEncryptor struct {
-	mock.Mock
-}
-
-func (m *mockEncryptor) Encrypt(plaintext []byte) ([]byte, error) {
-	ret := m.Called(plaintext)
-	if ret.Get(0) == nil {
-		return nil, ret.Error(1)
-	}
-	return ret.Get(0).([]byte), ret.Error(1)
-}
-
-func (m *mockEncryptor) Decrypt(ciphertext []byte) ([]byte, error) {
-	ret := m.Called(ciphertext)
-	if ret.Get(0) == nil {
-		return nil, ret.Error(1)
-	}
-	return ret.Get(0).([]byte), ret.Error(1)
-}
-
 func makeTestPayload() []byte {
 	p := model.LoginPasswordPayload{Login: "testuser", Password: "testpass"}
 	b, _ := json.Marshal(p)
@@ -55,7 +35,7 @@ func makeTestData(userID, id uuid.UUID) *model.Data {
 func TestDataService_CreateData(t *testing.T) {
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *mockEncryptor)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor)
 		userID      uuid.UUID
 		payloadJSON []byte
 		dataType    model.DataType
@@ -65,7 +45,7 @@ func TestDataService_CreateData(t *testing.T) {
 	}{
 		{
 			name: "successful create",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				enc.On("Encrypt", makeTestPayload()).Return([]byte("encrypted"), nil)
 				repo.On("NextID", mock.Anything).Return(uuid.New())
 				repo.On("Store", mock.Anything, mock.AnythingOfType("model.Data")).Return(nil)
@@ -78,7 +58,7 @@ func TestDataService_CreateData(t *testing.T) {
 		},
 		{
 			name: "encrypt fails",
-			setupMocks: func(_ *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(_ *MockDataRepository, enc *crypto.MockEncryptor) {
 				enc.On("Encrypt", makeTestPayload()).Return(nil, crypto.ErrDecryptionFailed)
 			},
 			userID:      uuid.New(),
@@ -88,7 +68,7 @@ func TestDataService_CreateData(t *testing.T) {
 		},
 		{
 			name: "store fails",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				enc.On("Encrypt", makeTestPayload()).Return([]byte("encrypted"), nil)
 				repo.On("NextID", mock.Anything).Return(uuid.New())
 				repo.On("Store", mock.Anything, mock.AnythingOfType("model.Data")).Return(errors.New("db error"))
@@ -103,7 +83,7 @@ func TestDataService_CreateData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
-			mockEnc := &mockEncryptor{}
+			mockEnc := crypto.NewMockEncryptor(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc)
@@ -132,7 +112,7 @@ func TestDataService_GetData(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *mockEncryptor)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor)
 		requestID   uuid.UUID
 		requestUser uuid.UUID
 		expectError bool
@@ -141,7 +121,7 @@ func TestDataService_GetData(t *testing.T) {
 	}{
 		{
 			name: "successful get",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 				enc.On("Decrypt", mock.Anything).Return(payload, nil)
 			},
@@ -151,7 +131,7 @@ func TestDataService_GetData(t *testing.T) {
 		},
 		{
 			name: "not found",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{}, repository.ErrNotFound)
 			},
 			requestID:   dataID,
@@ -161,7 +141,7 @@ func TestDataService_GetData(t *testing.T) {
 		},
 		{
 			name: "access denied",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 			},
 			requestID:   dataID,
@@ -171,7 +151,7 @@ func TestDataService_GetData(t *testing.T) {
 		},
 		{
 			name: "decrypt fails",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 				enc.On("Decrypt", mock.Anything).Return(nil, crypto.ErrDecryptionFailed)
 			},
@@ -184,7 +164,7 @@ func TestDataService_GetData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
-			mockEnc := &mockEncryptor{}
+			mockEnc := crypto.NewMockEncryptor(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc)
@@ -211,7 +191,7 @@ func TestDataService_ListData(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *mockEncryptor)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor)
 		page        int
 		pageSize    int
 		dataTypes   []model.DataType
@@ -222,7 +202,7 @@ func TestDataService_ListData(t *testing.T) {
 	}{
 		{
 			name: "successful list single page",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(3, nil)
 				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
 					*makeTestData(userID, uuid.New()),
@@ -238,7 +218,7 @@ func TestDataService_ListData(t *testing.T) {
 		},
 		{
 			name: "pagination page 2",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(5, nil)
 				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
 					*makeTestData(userID, uuid.New()),
@@ -253,7 +233,7 @@ func TestDataService_ListData(t *testing.T) {
 		},
 		{
 			name: "empty list",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(0, nil)
 				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{}, nil)
 			},
@@ -264,7 +244,7 @@ func TestDataService_ListData(t *testing.T) {
 		},
 		{
 			name: "count fails",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(0, errors.New("db error"))
 			},
 			page:        1,
@@ -276,7 +256,7 @@ func TestDataService_ListData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
-			mockEnc := &mockEncryptor{}
+			mockEnc := crypto.NewMockEncryptor(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			svc := NewDataService(mockRepo, mockEnc)
@@ -303,14 +283,14 @@ func TestDataService_UpdateData(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		setupMocks  func(*MockDataRepository, *mockEncryptor)
+		setupMocks  func(*MockDataRepository, *crypto.MockEncryptor)
 		expectError bool
 		expectErr   error
 		expectData  bool
 	}{
 		{
 			name: "successful update",
-			setupMocks: func(repo *MockDataRepository, enc *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 				enc.On("Encrypt", newPayload).Return([]byte("encrypted"), nil)
 				repo.On("Store", mock.Anything, mock.AnythingOfType("model.Data")).Return(nil)
@@ -319,7 +299,7 @@ func TestDataService_UpdateData(t *testing.T) {
 		},
 		{
 			name: "not found",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{}, repository.ErrNotFound)
 			},
 			expectError: true,
@@ -327,7 +307,7 @@ func TestDataService_UpdateData(t *testing.T) {
 		},
 		{
 			name: "access denied",
-			setupMocks: func(repo *MockDataRepository, _ *mockEncryptor) {
+			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 			},
 			expectError: true,
@@ -338,7 +318,7 @@ func TestDataService_UpdateData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
-			mockEnc := &mockEncryptor{}
+			mockEnc := crypto.NewMockEncryptor(t)
 			tc.setupMocks(mockRepo, mockEnc)
 
 			var requestUser uuid.UUID
@@ -410,8 +390,9 @@ func TestDataService_DeleteData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := NewMockDataRepository(t)
 			tc.setupMocks(mockRepo)
+			mockEnc := crypto.NewMockEncryptor(t)
 
-			svc := NewDataService(mockRepo, &mockEncryptor{})
+			svc := NewDataService(mockRepo, mockEnc)
 			err := svc.DeleteData(t.Context(), dataID, tc.requestUser)
 
 			if tc.expectError {
