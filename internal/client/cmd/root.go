@@ -44,12 +44,14 @@ func Setup() {
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(refreshCmd)
 
+	initDataFlags()
 	dataCmd.AddCommand(dataListCmd)
 	dataCmd.AddCommand(dataGetCmd)
 	dataCmd.AddCommand(dataCreateCmd)
 	dataCmd.AddCommand(dataUpdateCmd)
 	dataCmd.AddCommand(dataDeleteCmd)
 
+	initFileFlags()
 	fileCmd.AddCommand(fileUploadCmd)
 	fileCmd.AddCommand(fileDownloadCmd)
 	fileCmd.AddCommand(fileListCmd)
