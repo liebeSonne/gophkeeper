@@ -351,6 +351,98 @@ func (_c *MockFileService_InitUpload_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// ListFiles provides a mock function for the type MockFileService
+func (_mock *MockFileService) ListFiles(ctx context.Context, userID uuid.UUID, page int, pageSize int, query *string) ([]model.File, int, error) {
+	ret := _mock.Called(ctx, userID, page, pageSize, query)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListFiles")
+	}
+
+	var r0 []model.File
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, int, *string) ([]model.File, int, error)); ok {
+		return returnFunc(ctx, userID, page, pageSize, query)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, int, *string) []model.File); ok {
+		r0 = returnFunc(ctx, userID, page, pageSize, query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.File)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, int, int, *string) int); ok {
+		r1 = returnFunc(ctx, userID, page, pageSize, query)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID, int, int, *string) error); ok {
+		r2 = returnFunc(ctx, userID, page, pageSize, query)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockFileService_ListFiles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListFiles'
+type MockFileService_ListFiles_Call struct {
+	*mock.Call
+}
+
+// ListFiles is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+//   - page int
+//   - pageSize int
+//   - query *string
+func (_e *MockFileService_Expecter) ListFiles(ctx interface{}, userID interface{}, page interface{}, pageSize interface{}, query interface{}) *MockFileService_ListFiles_Call {
+	return &MockFileService_ListFiles_Call{Call: _e.mock.On("ListFiles", ctx, userID, page, pageSize, query)}
+}
+
+func (_c *MockFileService_ListFiles_Call) Run(run func(ctx context.Context, userID uuid.UUID, page int, pageSize int, query *string)) *MockFileService_ListFiles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		var arg4 *string
+		if args[4] != nil {
+			arg4 = args[4].(*string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockFileService_ListFiles_Call) Return(files []model.File, n int, err error) *MockFileService_ListFiles_Call {
+	_c.Call.Return(files, n, err)
+	return _c
+}
+
+func (_c *MockFileService_ListFiles_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, page int, pageSize int, query *string) ([]model.File, int, error)) *MockFileService_ListFiles_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UploadChunk provides a mock function for the type MockFileService
 func (_mock *MockFileService) UploadChunk(ctx context.Context, fileID uuid.UUID, userID uuid.UUID, chunkIndex int, data []byte) error {
 	ret := _mock.Called(ctx, fileID, userID, chunkIndex, data)

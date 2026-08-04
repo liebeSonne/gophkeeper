@@ -30,6 +30,8 @@ func convertDataTypeFromAPI(dt server.DataType) (model.DataType, error) {
 		return model.DataTypeBankCard, nil
 	case server.DataTypeTEXT:
 		return model.DataTypeText, nil
+	case server.DataTypeFILE:
+		return model.DataTypeFile, nil
 	default:
 		return 0, fmt.Errorf("unknown data type: %s", dt)
 	}
@@ -46,7 +48,8 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 	switch data.Type {
 	case model.DataTypeLoginPassword:
 		var p model.LoginPasswordPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
+		err := json.Unmarshal(payload, &p)
+		if err != nil {
 			return nil, fmt.Errorf("unmarshal login_password payload: %w", err)
 		}
 		var metadata *string
@@ -54,7 +57,7 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			metadata = strToPtr(data.Metadata)
 		}
 		info = &server.DataInfo{}
-		_ = info.FromLoginPasswordDataInfo(server.LoginPasswordDataInfo{
+		err = info.FromLoginPasswordDataInfo(server.LoginPasswordDataInfo{
 			Id:        data.ID,
 			Type:      server.LoginPasswordDataInfoTypeLOGINPASSWORD,
 			Login:     p.Login,
@@ -63,9 +66,13 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			CreatedAt: data.CreatedAt,
 			UpdatedAt: data.UpdatedAt,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("error on create data info: %w", err)
+		}
 	case model.DataTypeBankCard:
 		var p model.BankCardPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
+		err := json.Unmarshal(payload, &p)
+		if err != nil {
 			return nil, fmt.Errorf("unmarshal bank_card payload: %w", err)
 		}
 		var metadata *string
@@ -73,7 +80,7 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			metadata = strToPtr(data.Metadata)
 		}
 		info = &server.DataInfo{}
-		_ = info.FromBankCardDataInfo(server.BankCardDataInfo{
+		err = info.FromBankCardDataInfo(server.BankCardDataInfo{
 			Id:         data.ID,
 			Type:       server.BankCardDataInfoTypeBANKCARD,
 			CardNumber: p.CardNumber,
@@ -84,9 +91,13 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			CreatedAt:  data.CreatedAt,
 			UpdatedAt:  data.UpdatedAt,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("error on create data info: %w", err)
+		}
 	case model.DataTypeText:
 		var p model.TextPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
+		err := json.Unmarshal(payload, &p)
+		if err != nil {
 			return nil, fmt.Errorf("unmarshal text payload: %w", err)
 		}
 		var metadata *string
@@ -94,7 +105,7 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			metadata = strToPtr(data.Metadata)
 		}
 		info = &server.DataInfo{}
-		_ = info.FromTextDataInfo(server.TextDataInfo{
+		err = info.FromTextDataInfo(server.TextDataInfo{
 			Id:        data.ID,
 			Type:      server.TextDataInfoTypeTEXT,
 			Text:      p.Text,
@@ -102,6 +113,32 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			CreatedAt: data.CreatedAt,
 			UpdatedAt: data.UpdatedAt,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("error on create data info: %w", err)
+		}
+	case model.DataTypeFile:
+		var p model.FilePayload
+		err := json.Unmarshal(payload, &p)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal file payload: %w", err)
+		}
+		var metadata *string
+		if data.Metadata != "" {
+			metadata = strToPtr(data.Metadata)
+		}
+
+		info = &server.DataInfo{}
+		err = info.FromFileDataInfo(server.FileDataInfo{
+			Id:        data.ID,
+			Type:      server.FileDataInfoTypeFILE,
+			FileIds:   p.FileIDs,
+			Metadata:  metadata,
+			CreatedAt: data.CreatedAt,
+			UpdatedAt: data.UpdatedAt,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error on create data info: %w", err)
+		}
 	default:
 		return nil, fmt.Errorf("unknown data type: %d", data.Type)
 	}
@@ -153,6 +190,10 @@ func convertDataMetadataFromAPIData(data *server.Data) string {
 				metadata = *d.Metadata
 			}
 		case server.TextData:
+			if d.Metadata != nil {
+				metadata = *d.Metadata
+			}
+		case server.FileData:
 			if d.Metadata != nil {
 				metadata = *d.Metadata
 			}

@@ -40,4 +40,10 @@ type FileRepository interface {
 	StoreFileChunks(ctx context.Context, chunks []model.FileChunk) error
 	UpdateChunkUploaded(ctx context.Context, fileID uuid.UUID, chunkIndex int, uploaded bool) error
 	GetUploadedChunksCount(ctx context.Context, fileID uuid.UUID) (int, error)
+	ListByUserID(ctx context.Context, userID uuid.UUID, query *string, limit, offset *int) ([]model.File, error)
+	CountByUserID(ctx context.Context, userID uuid.UUID, query *string) (int, error)
+}
+
+type FileProvider interface {
+	GetExistingFilesByUserID(ctx context.Context, userID uuid.UUID, fileIDs []uuid.UUID) ([]uuid.UUID, error)
 }

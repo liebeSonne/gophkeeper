@@ -317,3 +317,35 @@ func (s *FileService) makeFileKey(fileID uuid.UUID) string {
 func (s *FileService) makeFileChunkKey(fileID uuid.UUID, chunkIndex int) string {
 	return fmt.Sprintf("%s%s/%d", minioChunksPrefix, fileID.String(), chunkIndex)
 }
+
+func (s *FileService) ListFiles(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, pageSize int,
+	query *string,
+) ([]model.File, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+
+	limit := pageSize
+	offset := (page - 1) * pageSize
+
+	total, err := s.fileRepo.CountByUserID(ctx, userID, query)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count files: %w", err)
+	}
+
+	files, err := s.fileRepo.ListByUserID(ctx, userID, query, &limit, &offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list files: %w", err)
+	}
+
+	return files, total, nil
+}

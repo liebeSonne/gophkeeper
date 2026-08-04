@@ -31,4 +31,5 @@ type FileService interface {
 	CompleteUpload(ctx context.Context, fileID, userID uuid.UUID) (model.File, error)
 	DownloadFile(ctx context.Context, fileID, userID uuid.UUID) (reader io.ReadCloser, mimeType string, size int64, err error)
 	DeleteFile(ctx context.Context, fileID, userID uuid.UUID) error
+	ListFiles(ctx context.Context, userID uuid.UUID, page, pageSize int, query *string) ([]model.File, int, error)
 }

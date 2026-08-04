@@ -13,6 +13,7 @@ const (
 	DataTypeLoginPassword DataType = iota
 	DataTypeBankCard
 	DataTypeText
+	DataTypeFile
 )
 
 func (t DataType) String() string {
@@ -23,6 +24,8 @@ func (t DataType) String() string {
 		return "BANK_CARD"
 	case DataTypeText:
 		return "TEXT"
+	case DataTypeFile:
+		return "FILE"
 	default:
 		return fmt.Sprintf("unknown_data_type(%d)", t)
 	}
@@ -53,4 +56,8 @@ type BankCardPayload struct {
 
 type TextPayload struct {
 	Text string `json:"text"`
+}
+
+type FilePayload struct {
+	FileIDs []uuid.UUID `json:"file_ids"`
 }

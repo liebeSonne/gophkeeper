@@ -55,6 +55,7 @@ func (e BankCardDataInfoType) Valid() bool {
 // Defines values for DataType.
 const (
 	DataTypeBANKCARD      DataType = "BANK_CARD"
+	DataTypeFILE          DataType = "FILE"
 	DataTypeLOGINPASSWORD DataType = "LOGIN_PASSWORD"
 	DataTypeTEXT          DataType = "TEXT"
 )
@@ -64,9 +65,41 @@ func (e DataType) Valid() bool {
 	switch e {
 	case DataTypeBANKCARD:
 		return true
+	case DataTypeFILE:
+		return true
 	case DataTypeLOGINPASSWORD:
 		return true
 	case DataTypeTEXT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FileDataType.
+const (
+	FileDataTypeFILE FileDataType = "FILE"
+)
+
+// Valid indicates whether the value is a known member of the FileDataType enum.
+func (e FileDataType) Valid() bool {
+	switch e {
+	case FileDataTypeFILE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FileDataInfoType.
+const (
+	FileDataInfoTypeFILE FileDataInfoType = "FILE"
+)
+
+// Valid indicates whether the value is a known member of the FileDataInfoType enum.
+func (e FileDataInfoType) Valid() bool {
+	switch e {
+	case FileDataInfoTypeFILE:
 		return true
 	default:
 		return false
@@ -248,6 +281,33 @@ type FileCompleteRequest struct {
 	FileId openapi_types.UUID `json:"file_id"`
 }
 
+// FileData defines model for fileData.
+type FileData struct {
+	FileIds []openapi_types.UUID `json:"file_ids"`
+
+	// Metadata Arbitrary text metadata (unencrypted)
+	Metadata *string      `json:"metadata,omitempty"`
+	Type     FileDataType `json:"type"`
+}
+
+// FileDataType defines model for FileData.Type.
+type FileDataType string
+
+// FileDataInfo defines model for fileDataInfo.
+type FileDataInfo struct {
+	CreatedAt time.Time            `json:"created_at"`
+	FileIds   []openapi_types.UUID `json:"file_ids"`
+	Id        openapi_types.UUID   `json:"id"`
+
+	// Metadata Arbitrary text metadata (unencrypted)
+	Metadata  *string          `json:"metadata,omitempty"`
+	Type      FileDataInfoType `json:"type"`
+	UpdatedAt time.Time        `json:"updated_at"`
+}
+
+// FileDataInfoType defines model for FileDataInfo.Type.
+type FileDataInfoType string
+
 // FileInfo defines model for fileInfo.
 type FileInfo struct {
 	ChunksCount int                `json:"chunks_count"`
@@ -291,6 +351,15 @@ type HealthResponse struct {
 // ListDataResponse defines model for listDataResponse.
 type ListDataResponse struct {
 	Items      []DataInfo `json:"items"`
+	Page       int        `json:"page"`
+	PageSize   int        `json:"page_size"`
+	Total      int        `json:"total"`
+	TotalPages int        `json:"total_pages"`
+}
+
+// ListFilesResponse defines model for listFilesResponse.
+type ListFilesResponse struct {
+	Items      []FileInfo `json:"items"`
 	Page       int        `json:"page"`
 	PageSize   int        `json:"page_size"`
 	Total      int        `json:"total"`
@@ -431,6 +500,18 @@ type ListDataParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// ListFilesParams defines parameters for ListFiles.
+type ListFilesParams struct {
+	// Page Page number
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of items per page
+	PageSize *int `form:"page_size,omitempty" json:"page_size,omitempty"`
+
+	// Query Search query (searches by file name)
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
 // UploadChunkMultipartBody defines parameters for UploadChunk.
 type UploadChunkMultipartBody struct {
 	ChunkIndex int                `json:"chunk_index"`
@@ -564,6 +645,40 @@ func (t *Data) MergeTextData(v TextData) error {
 	return err
 }
 
+// AsFileData returns the union data inside the Data as a FileData
+func (t Data) AsFileData() (FileData, error) {
+	var body FileData
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFileData overwrites any union data inside the Data as the provided FileData
+func (t *Data) FromFileData(v FileData) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FILE"}`))
+	t.union = b
+	return err
+}
+
+// MergeFileData performs a merge with any union data inside the Data, using the provided FileData
+func (t *Data) MergeFileData(v FileData) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FILE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t Data) Discriminator() (string, error) {
 	var discriminator struct {
 		Discriminator string `json:"type"`
@@ -580,6 +695,8 @@ func (t Data) ValueByDiscriminator() (interface{}, error) {
 	switch discriminator {
 	case "BANK_CARD":
 		return t.AsBankCardData()
+	case "FILE":
+		return t.AsFileData()
 	case "LOGIN_PASSWORD":
 		return t.AsLoginPasswordData()
 	case "TEXT":
@@ -701,6 +818,40 @@ func (t *DataInfo) MergeTextDataInfo(v TextDataInfo) error {
 	return err
 }
 
+// AsFileDataInfo returns the union data inside the DataInfo as a FileDataInfo
+func (t DataInfo) AsFileDataInfo() (FileDataInfo, error) {
+	var body FileDataInfo
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFileDataInfo overwrites any union data inside the DataInfo as the provided FileDataInfo
+func (t *DataInfo) FromFileDataInfo(v FileDataInfo) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FILE"}`))
+	t.union = b
+	return err
+}
+
+// MergeFileDataInfo performs a merge with any union data inside the DataInfo, using the provided FileDataInfo
+func (t *DataInfo) MergeFileDataInfo(v FileDataInfo) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FILE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t DataInfo) Discriminator() (string, error) {
 	var discriminator struct {
 		Discriminator string `json:"type"`
@@ -717,6 +868,8 @@ func (t DataInfo) ValueByDiscriminator() (interface{}, error) {
 	switch discriminator {
 	case "BANK_CARD":
 		return t.AsBankCardDataInfo()
+	case "FILE":
+		return t.AsFileDataInfo()
 	case "LOGIN_PASSWORD":
 		return t.AsLoginPasswordDataInfo()
 	case "TEXT":
@@ -762,6 +915,9 @@ type ServerInterface interface {
 	// UpdateData Update a data entry
 	// (PUT /api/v1/data/{id})
 	UpdateData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// ListFiles List user's files with pagination and search
+	// (GET /api/v1/file/list)
+	ListFiles(w http.ResponseWriter, r *http.Request, params ListFilesParams)
 	// UploadChunk Upload a file chunk
 	// (POST /api/v1/file/upload/chunk)
 	UploadChunk(w http.ResponseWriter, r *http.Request)
@@ -831,6 +987,12 @@ func (_ Unimplemented) GetData(w http.ResponseWriter, r *http.Request, id openap
 // UpdateData Update a data entry
 // (PUT /api/v1/data/{id})
 func (_ Unimplemented) UpdateData(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListFiles List user's files with pagination and search
+// (GET /api/v1/file/list)
+func (_ Unimplemented) ListFiles(w http.ResponseWriter, r *http.Request, params ListFilesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1076,6 +1238,65 @@ func (siw *ServerInterfaceWrapper) UpdateData(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateData(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFiles operation middleware
+func (siw *ServerInterfaceWrapper) ListFiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFilesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page_size" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page_size", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page_size"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page_size", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "query", r.URL.Query(), &params.Query, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "query"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFiles(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1348,6 +1569,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/file/{id}", wrapper.DeleteFile)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/file/list", wrapper.ListFiles)
+	})
 
 	return r
 }
@@ -1357,46 +1581,48 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"3QC5vl7/NwAA//8=",
+	"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",
+	"F3Np4n1PysdA7rsBcnW9+k8AAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

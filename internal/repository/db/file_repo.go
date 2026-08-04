@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -97,7 +98,8 @@ func (r *FileRepo) StoreFileChunks(ctx context.Context, chunks []model.FileChunk
 
 func (r *FileRepo) UpdateChunkUploaded(ctx context.Context, fileID uuid.UUID, chunkIndex int, uploaded bool) error {
 	const query = `
-		UPDATE file_chunk SET uploaded = $1 WHERE file_id = $2 AND chunk_index = $3
+		UPDATE file_chunk SET uploaded = $1 
+	  	WHERE file_id = $2 AND chunk_index = $3
 	`
 	result, err := r.pool.Exec(ctx, query, uploaded, fileID, chunkIndex)
 	if err != nil {
@@ -110,11 +112,118 @@ func (r *FileRepo) UpdateChunkUploaded(ctx context.Context, fileID uuid.UUID, ch
 }
 
 func (r *FileRepo) GetUploadedChunksCount(ctx context.Context, fileID uuid.UUID) (int, error) {
-	const query = `SELECT count(*) FROM file_chunk WHERE file_id = $1 AND uploaded = TRUE`
+	const query = `
+		SELECT count(*) 
+		FROM file_chunk 
+		WHERE file_id = $1 AND uploaded = TRUE
+	`
 	var count int
 	err := r.pool.QueryRow(ctx, query, fileID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count uploaded chunks: %w", err)
 	}
 	return count, nil
+}
+
+func (r *FileRepo) GetExistingFilesByUserID(ctx context.Context, userID uuid.UUID, fileIDs []uuid.UUID) ([]uuid.UUID, error) {
+	if len(fileIDs) == 0 {
+		return []uuid.UUID{}, nil
+	}
+
+	const query = `
+		SELECT id 
+		FROM file 
+		WHERE id = ANY($1) AND user_id = $2
+	`
+	rows, err := r.pool.Query(ctx, query, fileIDs, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get existing files by user id: %w", err)
+	}
+	defer rows.Close()
+
+	result := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, fmt.Errorf("scan file id: %w", err)
+		}
+		result = append(result, id)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("iterate files: %w", err)
+	}
+	return result, nil
+}
+
+func (r *FileRepo) ListByUserID(ctx context.Context, userID uuid.UUID, query *string, limit, offset *int) ([]model.File, error) {
+	baseQuery := `
+		SELECT id, user_id, name, mime_type, size, chunks_count, status, created_at, updated_at 
+		FROM file 
+		WHERE %s
+		ORDER BY created_at DESC
+	`
+
+	conditions, args := r.prepareConditions(userID, query)
+
+	sqlQuery := fmt.Sprintf(baseQuery, strings.Join(conditions, " AND "))
+	if limit != nil {
+		sqlQuery += fmt.Sprintf(" LIMIT %d", *limit)
+	}
+	if offset != nil {
+		sqlQuery += fmt.Sprintf(" OFFSET %d", *offset)
+	}
+
+	rows, err := r.pool.Query(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list files by user id: %w", err)
+	}
+	defer rows.Close()
+
+	files := make([]model.File, 0)
+	for rows.Next() {
+		var f model.File
+		err = rows.Scan(&f.ID, &f.UserID, &f.Name, &f.MimeType, &f.Size, &f.ChunksCount, &f.Status, &f.CreatedAt, &f.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("scan file: %w", err)
+		}
+		files = append(files, f)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("iterate files: %w", err)
+	}
+	return files, nil
+}
+
+func (r *FileRepo) CountByUserID(ctx context.Context, userID uuid.UUID, query *string) (int, error) {
+	sqlQuery := `SELECT count(*) FROM file WHERE %s`
+
+	conditions, args := r.prepareConditions(userID, query)
+
+	var count int
+	err := r.pool.QueryRow(ctx, fmt.Sprintf(sqlQuery, strings.Join(conditions, " AND ")), args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count files by user id: %w", err)
+	}
+	return count, nil
+}
+
+func (r *FileRepo) prepareConditions(userID uuid.UUID, query *string) (conditions []string, args []interface{}) {
+	conditions = []string{
+		"user_id = $1",
+	}
+	args = []interface{}{
+		userID,
+	}
+
+	argIndex := 1
+	if query != nil && *query != "" {
+		argIndex++
+		conditions = append(conditions, "name ILIKE $"+fmt.Sprint(argIndex))
+		args = append(args, "%"+*query+"%")
+	}
+
+	return conditions, args
 }

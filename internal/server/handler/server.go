@@ -655,3 +655,55 @@ func (h *serverHandler) jsonEncode(w http.ResponseWriter, v any) {
 		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 }
+
+func (h *serverHandler) ListFiles(w http.ResponseWriter, r *http.Request, params server.ListFilesParams) {
+	ctx := r.Context()
+	userID, ok := authctx.GetUserIDFromContext(ctx)
+	if !ok {
+		h.writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	page := 1
+	if params.Page != nil {
+		page = *params.Page
+	}
+	pageSize := defaultPageSize
+	if params.PageSize != nil {
+		pageSize = *params.PageSize
+	}
+
+	items, total, err := h.fileService.ListFiles(ctx, userID, page, pageSize, params.Query)
+	if err != nil {
+		h.logger.Error("error on list files", "err", err)
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return
+	}
+
+	totalPages := (total + pageSize - 1) / pageSize
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	apiItems := make([]server.FileInfo, 0, len(items))
+	for i := range items {
+		fileInfo, err := convertFileToAPI(items[i])
+		if err != nil {
+			h.logger.Error("error on convert file", "err", err, "index", i)
+			continue
+		}
+		apiItems = append(apiItems, fileInfo)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	response := server.ListFilesResponse{
+		Items:      apiItems,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}
+
+	h.jsonEncode(w, response)
+}

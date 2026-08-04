@@ -461,3 +461,98 @@ func TestFileService_DeleteFile(t *testing.T) {
 		})
 	}
 }
+
+func TestFileService_ListFiles(t *testing.T) {
+	testUser := uuid.New()
+
+	testCases := []struct {
+		name        string
+		setupMocks  func(*MockFileRepository)
+		page        int
+		pageSize    int
+		query       *string
+		expectError bool
+		expectCount int
+		expectTotal int
+	}{
+		{
+			name: "successful list",
+			setupMocks: func(repo *MockFileRepository) {
+				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(3, nil)
+				repo.On("ListByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{
+					makeTestFile(testUser, uuid.New()),
+					makeTestFile(testUser, uuid.New()),
+					makeTestFile(testUser, uuid.New()),
+				}, nil)
+			},
+			page:        1,
+			pageSize:    20,
+			expectCount: 3,
+			expectTotal: 3,
+		},
+		{
+			name: "empty list",
+			setupMocks: func(repo *MockFileRepository) {
+				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(0, nil)
+				repo.On("ListByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{}, nil)
+			},
+			page:        1,
+			pageSize:    20,
+			expectCount: 0,
+			expectTotal: 0,
+		},
+		{
+			name: "with query",
+			setupMocks: func(repo *MockFileRepository) {
+				repo.On("CountByUserID", mock.Anything, testUser, mock.AnythingOfType("*string")).Return(1, nil)
+				repo.On("ListByUserID", mock.Anything, testUser, mock.AnythingOfType("*string"), mock.Anything, mock.Anything).Return([]model.File{
+					makeTestFile(testUser, uuid.New()),
+				}, nil)
+			},
+			page:        1,
+			pageSize:    20,
+			query:       strPtr("test"),
+			expectCount: 1,
+			expectTotal: 1,
+		},
+		{
+			name: "count fails",
+			setupMocks: func(repo *MockFileRepository) {
+				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(0, errors.New("db error"))
+			},
+			page:        1,
+			pageSize:    20,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockRepo := NewMockFileRepository(t)
+			mockEnc := crypto.NewMockEncryptor(t)
+			mockMinIO := storage.NewMockMinIOClient(t)
+
+			tc.setupMocks(mockRepo)
+
+			l := intlogger.NewMockLogger(t)
+			l.EXPECT().Warn(mock.Anything, mock.Anything).Return().Maybe()
+
+			svc := NewFileService(mockRepo, mockEnc, mockMinIO, "testbucket", l)
+
+			files, total, err := svc.ListFiles(context.Background(), testUser, tc.page, tc.pageSize, tc.query)
+
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectTotal, total)
+			assert.Len(t, files, tc.expectCount)
+		})
+	}
+}
+
+func strPtr(s string) *string {
+	return &s
+}

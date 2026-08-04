@@ -20,14 +20,16 @@ const defaultPageSize = 20
 const maxPageSize = 100
 
 type DataService struct {
-	repo      DataRepository
-	encryptor crypto.Encryptor
+	repo         DataRepository
+	encryptor    crypto.Encryptor
+	fileProvider FileProvider
 }
 
-func NewDataService(repo DataRepository, encryptor crypto.Encryptor) *DataService {
+func NewDataService(repo DataRepository, encryptor crypto.Encryptor, fileProvider FileProvider) *DataService {
 	return &DataService{
-		repo:      repo,
-		encryptor: encryptor,
+		repo:         repo,
+		encryptor:    encryptor,
+		fileProvider: fileProvider,
 	}
 }
 
@@ -38,6 +40,12 @@ func (s *DataService) CreateData(
 	dataType model.DataType,
 	metadata string,
 ) (model.Data, error) {
+	if dataType == model.DataTypeFile {
+		if err := s.validateFilePayload(ctx, userID, payloadJSON); err != nil {
+			return model.Data{}, err
+		}
+	}
+
 	encrypted, err := s.encryptor.Encrypt(payloadJSON)
 	if err != nil {
 		return model.Data{}, fmt.Errorf("encrypt payload: %w", err)
@@ -153,6 +161,13 @@ func (s *DataService) UpdateData(
 		return model.Data{}, apperrors.ErrDataAccessDenied
 	}
 
+	if dataType == model.DataTypeFile {
+		err = s.validateFilePayloadUpdate(ctx, userID, existing.Payload, payloadJSON)
+		if err != nil {
+			return model.Data{}, err
+		}
+	}
+
 	encrypted, err := s.encryptor.Encrypt(payloadJSON)
 	if err != nil {
 		return model.Data{}, fmt.Errorf("encrypt payload: %w", err)
@@ -192,6 +207,75 @@ func (s *DataService) DeleteData(ctx context.Context, id, userID uuid.UUID) erro
 	return nil
 }
 
+func (s *DataService) validateFilePayload(ctx context.Context, userID uuid.UUID, payloadJSON []byte) error {
+	var fp model.FilePayload
+	err := json.Unmarshal(payloadJSON, &fp)
+	if err != nil {
+		return fmt.Errorf("unmarshal file payload: %w", err)
+	}
+
+	if len(fp.FileIDs) == 0 {
+		return apperrors.ErrFileReferenceInvalid
+	}
+
+	validIDs, err := s.fileProvider.GetExistingFilesByUserID(ctx, userID, fp.FileIDs)
+	if err != nil {
+		return fmt.Errorf("validate file references: %w", err)
+	}
+
+	if len(validIDs) != len(fp.FileIDs) {
+		return apperrors.ErrFileReferenceInvalid
+	}
+
+	return nil
+}
+
+func (s *DataService) validateFilePayloadUpdate(ctx context.Context, userID uuid.UUID, oldPayloadEncrypted, newPayloadJSON []byte) error {
+	oldDecrypted, err := s.encryptor.Decrypt(oldPayloadEncrypted)
+	if err != nil {
+		return fmt.Errorf("decrypt old payload: %w", err)
+	}
+
+	var fpOld model.FilePayload
+	err = json.Unmarshal(oldDecrypted, &fpOld)
+	if err != nil {
+		return fmt.Errorf("unmarshal old file payload: %w", err)
+	}
+
+	var fpNew model.FilePayload
+	err = json.Unmarshal(newPayloadJSON, &fpNew)
+	if err != nil {
+		return fmt.Errorf("unmarshal file payload: %w", err)
+	}
+
+	if fileIDsEqual(fpOld.FileIDs, fpNew.FileIDs) {
+		return nil
+	}
+
+	err = s.validateFilePayload(ctx, userID, newPayloadJSON)
+	if err != nil {
+		return fmt.Errorf("validate new file payload: %w", err)
+	}
+
+	return nil
+}
+
+func fileIDsEqual(a, b []uuid.UUID) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[uuid.UUID]bool, len(a))
+	for _, id := range a {
+		seen[id] = true
+	}
+	for _, id := range b {
+		if !seen[id] {
+			return false
+		}
+	}
+	return true
+}
+
 func UnmarshalPayload(payload []byte, dataType model.DataType) (interface{}, error) {
 	switch dataType {
 	case model.DataTypeLoginPassword:
@@ -210,6 +294,12 @@ func UnmarshalPayload(payload []byte, dataType model.DataType) (interface{}, err
 		var p model.TextPayload
 		if err := json.Unmarshal(payload, &p); err != nil {
 			return nil, fmt.Errorf("unmarshal text payload: %w", err)
+		}
+		return p, nil
+	case model.DataTypeFile:
+		var p model.FilePayload
+		if err := json.Unmarshal(payload, &p); err != nil {
+			return nil, fmt.Errorf("unmarshal file payload: %w", err)
 		}
 		return p, nil
 	default:

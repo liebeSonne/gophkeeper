@@ -45,7 +45,7 @@ func newDependencyContainer(
 		return nil, fmt.Errorf("create encryptor: %w", err)
 	}
 
-	dataService := service.NewDataService(dataRepo, encryptor)
+	dataService := service.NewDataService(dataRepo, encryptor, fileRepo)
 	fileService := service.NewFileService(fileRepo, encryptor, con.MinIOClient, cfg.StorageBucket, logger)
 
 	// HTTP Server
