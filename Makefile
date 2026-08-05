@@ -4,6 +4,7 @@ BUILD_TIME := $(shell date +'%Y/%m/%d %H:%M:%S')
 LDFLAGS := -X main.buildVersion=$(VERSION) -X 'main.buildDate=$(BUILD_TIME)' -X main.buildCommit=$(COMMIT)
 
 PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
+DOCKER_NETWORK := gophkeeper-net
 
 .DEFAULT_GOAL := all
 
@@ -81,3 +82,61 @@ generate: generate-api-server generate-client ## Generate all API code
 .PHONY: mocks
 mocks: ## Run generate mocks
 	@mockery
+
+# Docker targets
+
+.PHONY: docker-up
+docker-up: ## Start dependencies (PostgreSQL, Vault, MinIO)
+	@docker network create $(DOCKER_NETWORK) 2>/dev/null || true
+	@docker compose -f deployments/docker-compose.yml up -d
+	@echo "Waiting for services to be ready..."
+	@docker compose -f deployments/docker-compose.yml wait || true
+	@echo "Services started"
+
+.PHONY: docker-down
+docker-down: ## Stop all services
+	@docker stop gophkeeper-server 2>/dev/null || true
+	@docker compose -f deployments/docker-compose.yml down
+
+.PHONY: docker-logs
+docker-logs: ## Show logs
+	@docker compose -f deployments/docker-compose.yml logs -f
+
+.PHONY: docker-clean
+docker-clean: ## Stop and remove volumes
+	@docker stop gophkeeper-server 2>/dev/null || true
+	@docker rm gophkeeper-server 2>/dev/null || true
+	@docker compose -f deployments/docker-compose.yml down -v
+	@docker network rm $(DOCKER_NETWORK) 2>/dev/null || true
+
+.PHONY: docker-server-build
+docker-server-build: ## Build server Docker image
+	@docker build -f Dockerfile.server -t gophkeeper-server:latest .
+
+.PHONY: docker-server-run
+docker-server-run: docker-up docker-server-build ## Run server with dependencies
+	@docker stop gophkeeper-server 2>/dev/null || true
+	@docker rm gophkeeper-server 2>/dev/null || true
+	@docker run -d --name gophkeeper-server \
+		--network $(DOCKER_NETWORK) \
+		-p 8080:8080 \
+		-e LOG_LEVEL=debug \
+		-e SERVER_ADDRESS=0.0.0.0:8080 \
+		-e ENABLE_HTTPS=false \
+		-e TLS_CERT= \
+		-e TLS_KEY= \
+		-e DATABASE_URI=postgres://gophkeeper:gophkeeper@postgres:5432/gophkeeper \
+		-e JWT_SECRET=dev-jwt-secret-change-in-production \
+		-e JWT_ACCESS_TTL=15m \
+		-e JWT_REFRESH_TTL=24h \
+		-e ENABLE_VAULT=false \
+		-e VAULT_ADDRESS=http://vault:8200 \
+		-e VAULT_TOKEN=dev-token \
+		-e VAULT_KEY_PATH=secret/data/gophkeeper/encryption \
+		-e ENCRYPTION_KEY=V+EqNpqMktOtjoRiz0/6YEdzRJGw3gU+46shFQwz3zw= \
+		-e STORAGE_ENDPOINT=minio:9000 \
+		-e STORAGE_ACCESS_KEY=minioadmin \
+		-e STORAGE_SECRET_KEY=minioadmin \
+		-e STORAGE_BUCKET=gophkeeper \
+		-e STORAGE_SECURE=false \
+		gophkeeper-server:latest
