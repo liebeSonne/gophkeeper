@@ -57,8 +57,22 @@ test: ## Run tests
 .PHONY: cover
 cover: ## Run tests coverage
 	@go test -coverprofile=coverage.out ./...
-	@grep -v -E "\.pb\.go|mock\.go|_gen\.go" coverage.out > coverage.clean.out
+	@grep -v -E "\.pb\.go|mock_.*\.gen\.go|_gen\.go|client\.gen\.go|openapi.*gen\.go" coverage.out > coverage.clean.out
 	@go tool cover -func=coverage.clean.out | grep total
+
+.PHONY: cover-check
+cover-check: ## Check test coverage >= 70% (excluding generated/mocks/cmd/tui/repo-db)
+	@CGO_ENABLED=0 go test -coverprofile=/tmp/coverage_all.out ./... 2>&1 | grep -v "no test files" || true
+	@grep -v -E "\.pb\.go|mock_.*\.gen\.go|_gen\.go|client\.gen\.go|openapi.*gen\.go" \
+		/tmp/coverage_all.out > /tmp/coverage_clean.out || true
+	@grep -v -E "cmd/|internal/client/cmd|internal/client/tui|internal/server/repository/db" \
+		/tmp/coverage_clean.out > /tmp/coverage_filtered.out || true
+	@COV=$$(go tool cover -func=/tmp/coverage_filtered.out | grep total | \
+		awk '{print $$3}' | tr -d '%' | cut -d. -f1); \
+	echo "Coverage: $$COV%%"; \
+	if [ "$$COV" -lt 70 ]; then \
+		echo "ERROR: Coverage $$COV%% < 70%%"; exit 1; \
+	fi
 
 .PHONY: lint
 lint: ## Run linter
