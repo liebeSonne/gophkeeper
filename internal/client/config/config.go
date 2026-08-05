@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -17,12 +16,6 @@ const (
 	FieldServerAddress = "server_address"
 	FieldStoragePath   = "storage_path"
 	FieldLogLevel      = "log_level"
-)
-
-const (
-	FlagServerAddress = "server-address"
-	FlagStoragePath   = "storage-path"
-	FlagLogLevel      = "log-level"
 )
 
 const (
@@ -94,25 +87,6 @@ func Load() (ClientConfig, error) {
 		if err := v.ReadInConfig(); err != nil {
 			return ClientConfig{}, err
 		}
-	}
-
-	p := pflag.NewFlagSet("client", pflag.ContinueOnError)
-	flagServerAddr := p.String(FlagServerAddress, DefaultServerAddress, "server address (e.g. http://localhost:8080)")
-	flagStoragePath := p.String(FlagStoragePath, getDefaultStoragePath(), "path to SQLite storage file")
-	flagLogLevel := p.String(FlagLogLevel, DefaultLogLevel, "log level (debug, info, warn, error)")
-
-	if err := p.Parse(os.Args[1:]); err != nil {
-		return ClientConfig{}, err
-	}
-
-	if p.Changed(FlagServerAddress) {
-		v.Set(FieldServerAddress, *flagServerAddr)
-	}
-	if p.Changed(FlagStoragePath) {
-		v.Set(FieldStoragePath, *flagStoragePath)
-	}
-	if p.Changed(FlagLogLevel) {
-		v.Set(FieldLogLevel, *flagLogLevel)
 	}
 
 	return ClientConfig{

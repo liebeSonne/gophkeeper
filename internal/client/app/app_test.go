@@ -83,7 +83,7 @@ func TestApp(t *testing.T) {
 		restore := overrideConfigPaths(fakeConfig, fakeDir)
 		defer restore()
 
-		_, err := EnsureInitialized()
+		_, err := EnsureInitialized("")
 		assert.ErrorIs(t, err, ErrNotInitialized)
 	})
 
@@ -96,10 +96,10 @@ func TestApp(t *testing.T) {
 		restore := overrideConfigPaths(configFile, filepath.Dir(configFile))
 		defer restore()
 
-		_, err := EnsureInitialized()
+		_, err := EnsureInitialized("")
 		require.NoError(t, err)
 
-		app1, err := EnsureInitialized()
+		app1, err := EnsureInitialized("")
 		require.NoError(t, err)
 		assert.Same(t, app1, instance)
 	})
@@ -113,7 +113,7 @@ func TestApp(t *testing.T) {
 		restore := overrideConfigPaths(configFile, filepath.Dir(configFile))
 		defer restore()
 
-		_, err := EnsureInitialized()
+		_, err := EnsureInitialized("")
 		require.NoError(t, err)
 		require.NotNil(t, instance)
 
@@ -138,7 +138,7 @@ func TestApp(t *testing.T) {
 		restore := overrideConfigPaths(configFile, filepath.Dir(configFile))
 		defer restore()
 
-		_, err := EnsureInitialized()
+		_, err := EnsureInitialized("")
 		require.NoError(t, err)
 
 		assert.NoError(t, Close())

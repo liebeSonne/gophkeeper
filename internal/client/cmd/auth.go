@@ -24,9 +24,9 @@ var loginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
-		a, err := app.EnsureInitialized()
-		if err != nil {
-			return err
+		a := app.Get()
+		if a == nil {
+			return fmt.Errorf("client not initialized: run 'gk init' first")
 		}
 
 		login, password, err := getCredentials(cmd)
@@ -63,9 +63,9 @@ var registerCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
-		a, err := app.EnsureInitialized()
-		if err != nil {
-			return err
+		a := app.Get()
+		if a == nil {
+			return fmt.Errorf("client not initialized: run 'gk init' first")
 		}
 
 		login, password, err := getCredentials(cmd)
@@ -94,9 +94,9 @@ var logoutCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
-		a, err := app.EnsureInitialized()
-		if err != nil {
-			return err
+		a := app.Get()
+		if a == nil {
+			return fmt.Errorf("client not initialized: run 'gk init' first")
 		}
 
 		if err := a.Storage.ClearTokens(); err != nil {
@@ -114,9 +114,9 @@ var refreshCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
-		a, err := app.EnsureInitialized()
-		if err != nil {
-			return err
+		a := app.Get()
+		if a == nil {
+			return fmt.Errorf("client not initialized: run 'gk init' first")
 		}
 
 		tokens, err := a.Storage.GetTokens()

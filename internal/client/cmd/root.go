@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/liebeSonne/gophkeeper/internal/client/app"
 	clientconfig "github.com/liebeSonne/gophkeeper/internal/client/config"
 )
 
@@ -15,6 +16,14 @@ var buildCommit = "N/A"
 var rootCmd = &cobra.Command{
 	Use:   "gk",
 	Short: "GophKeeper - password manager CLI client",
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+		if cmd.Name() == "version" {
+			return nil
+		}
+		logLevel, _ := cmd.Flags().GetString("log-level")
+		_, err := app.EnsureInitialized(logLevel)
+		return err
+	},
 }
 
 func Execute() {

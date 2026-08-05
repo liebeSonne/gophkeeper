@@ -70,6 +70,7 @@ func initDataFlags() {
 	dataCreateCmd.Flags().StringP("payload-file", "f", "", "payload from JSON file")
 
 	dataUpdateCmd.Flags().StringP("id", "i", "", "data entry ID (required)")
+	dataUpdateCmd.Flags().StringP("type", "t", "", "data type: LOGIN_PASSWORD, BANK_CARD, TEXT, FILE (required)")
 	dataUpdateCmd.Flags().StringP("payload", "d", "", "payload as JSON string")
 	dataUpdateCmd.Flags().StringP("payload-file", "f", "", "payload from JSON file")
 
@@ -79,9 +80,9 @@ func initDataFlags() {
 func runDataList(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -128,9 +129,9 @@ func runDataList(cmd *cobra.Command, _ []string) error {
 func runDataGet(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -161,9 +162,9 @@ func runDataGet(cmd *cobra.Command, _ []string) error {
 func runDataCreate(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -201,9 +202,9 @@ func runDataCreate(cmd *cobra.Command, _ []string) error {
 func runDataUpdate(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -246,9 +247,9 @@ func runDataUpdate(cmd *cobra.Command, _ []string) error {
 func runDataDelete(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)

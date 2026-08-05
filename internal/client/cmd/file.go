@@ -64,9 +64,9 @@ func initFileFlags() {
 func runFileUpload(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -189,9 +189,9 @@ func uploadChunk(ctx context.Context, client *gophkeeper.ClientWithResponses, fi
 func runFileDownload(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -231,9 +231,9 @@ func runFileDownload(cmd *cobra.Command, _ []string) error {
 func runFileList(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)
@@ -269,9 +269,9 @@ func runFileList(cmd *cobra.Command, _ []string) error {
 func runFileDelete(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	a, err := app.EnsureInitialized()
-	if err != nil {
-		return err
+	a := app.Get()
+	if a == nil {
+		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
 
 	client, err := newAPIClient(a)

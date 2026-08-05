@@ -145,9 +145,9 @@ Use "gk [command] --help" for more information about a command.
 
 ```bash
 # С параметрами
-./bin/gophkeeper-client init --server-address http://localhost:8080 --storage-path ~/.config/gophkeeper/storage.db
+./bin/gophkeeper-client init --server-address http://localhost:8080 --storage-path ~/.config/gophkeeper/gophkeeper.db
 
-# Со значениями по умолчанию (server: http://localhost:8080, storage: ~/.config/gophkeeper/storage.db)
+# Со значениями по умолчанию (server: http://localhost:8080, storage: ~/.config/gophkeeper/gophkeeper.db)
 ./bin/gophkeeper-client init
 ```
 

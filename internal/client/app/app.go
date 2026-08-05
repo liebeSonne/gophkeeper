@@ -24,7 +24,7 @@ type App struct {
 	Storage *storage.TokenStorage
 }
 
-func EnsureInitialized() (*App, error) {
+func EnsureInitialized(logLevelOverride string) (*App, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -44,6 +44,10 @@ func EnsureInitialized() (*App, error) {
 	cfg, err := clientconfig.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	if logLevelOverride != "" && logLevelOverride != clientconfig.DefaultLogLevel {
+		cfg.LogLevel = logLevelOverride
 	}
 
 	level, ok := logLevelMap[cfg.LogLevel]
@@ -69,6 +73,12 @@ func EnsureInitialized() (*App, error) {
 	}
 
 	return instance, nil
+}
+
+func Get() *App {
+	mu.Lock()
+	defer mu.Unlock()
+	return instance
 }
 
 func Reset() {

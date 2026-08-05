@@ -42,7 +42,7 @@ type App struct {
 }
 
 func NewApp() (*App, error) {
-	a, err := clientapp.EnsureInitialized()
+	a, err := clientapp.EnsureInitialized("")
 	if err != nil {
 		return nil, fmt.Errorf("initialize app: %w", err)
 	}
