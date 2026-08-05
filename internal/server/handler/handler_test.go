@@ -1,3 +1,4 @@
+// nolint:goconst
 package handler
 
 import (
@@ -85,7 +86,7 @@ func TestRegisterUser(t *testing.T) {
 		},
 		{
 			name:           "invalid JSON body",
-			body:           "not json",
+			body:           testNotJSON,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -181,7 +182,7 @@ func TestLoginUser(t *testing.T) {
 		},
 		{
 			name:           "invalid JSON body",
-			body:           "not json",
+			body:           testNotJSON,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -277,7 +278,7 @@ func TestRefreshToken(t *testing.T) {
 		},
 		{
 			name:           "invalid JSON body",
-			body:           "not json",
+			body:           testNotJSON,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{

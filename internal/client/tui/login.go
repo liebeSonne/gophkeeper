@@ -157,13 +157,13 @@ func (m LoginModel) View() string {
 	sb.WriteString(styleHeader.Render("    GophKeeper Login\n"))
 	sb.WriteString("\n")
 
-	sb.WriteString(m.renderField("Server", m.server, m.state == loginFieldServer))
+	sb.WriteString(m.renderField(fieldNameServer, m.server, m.state == loginFieldServer))
 	sb.WriteString("\n\n")
 
-	sb.WriteString(m.renderField("Login", m.login, m.state == loginFieldLogin))
+	sb.WriteString(m.renderField(fieldNameLogin, m.login, m.state == loginFieldLogin))
 	sb.WriteString("\n\n")
 
-	sb.WriteString(m.renderField("Password", m.maskPassword(m.password), m.state == loginFieldPassword))
+	sb.WriteString(m.renderField(fieldNamePassword, m.maskPassword(m.password), m.state == loginFieldPassword))
 	sb.WriteString("\n\n")
 
 	sb.WriteString(styleFaint.Render("  Tab: next field  Enter: connect  Esc: quit\n"))

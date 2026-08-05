@@ -17,6 +17,12 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
+const (
+	testLogin     = "testuser"
+	testPassword  = "password123"
+	testTokenHash = "hashed"
+)
+
 func hashPassword(password string) string {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(hashed)
@@ -33,13 +39,13 @@ func TestAuthService_Register(t *testing.T) {
 	}{
 		{
 			name:     "successful registration",
-			login:    "testuser",
-			password: "password123",
+			login:    testLogin,
+			password: testPassword,
 			setupMocks: func(userRepo *MockUserRepository, tokenRepo *MockTokenRepository) {
 				userID := uuid.New()
 				userRepo.EXPECT().NextID(mock.Anything).Return(userID)
 				userRepo.EXPECT().Store(mock.Anything, mock.MatchedBy(func(u model.User) bool {
-					return u.Login == "testuser"
+					return u.Login == testLogin
 				})).Return(nil)
 				tokenID := uuid.New()
 				tokenRepo.EXPECT().NextID(mock.Anything).Return(tokenID)
@@ -52,7 +58,7 @@ func TestAuthService_Register(t *testing.T) {
 		{
 			name:     "conflict error",
 			login:    "existinguser",
-			password: "password123",
+			password: testPassword,
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
 				userID := uuid.New()
 				userRepo.EXPECT().NextID(mock.Anything).Return(userID)
@@ -105,14 +111,14 @@ func TestAuthService_Login(t *testing.T) {
 	}{
 		{
 			name:     "successful login",
-			login:    "testuser",
-			password: "password123",
+			login:    testLogin,
+			password: testPassword,
 			setupMocks: func(userRepo *MockUserRepository, tokenRepo *MockTokenRepository) {
 				userID := uuid.New()
-				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(model.User{
+				userRepo.EXPECT().GetByLogin(mock.Anything, testLogin).Return(model.User{
 					ID:       userID,
-					Login:    "testuser",
-					Password: hashPassword("password123"),
+					Login:    testLogin,
+					Password: hashPassword(testPassword),
 				}, nil)
 				tokenID := uuid.New()
 				tokenRepo.EXPECT().NextID(mock.Anything).Return(tokenID)
@@ -125,7 +131,7 @@ func TestAuthService_Login(t *testing.T) {
 		{
 			name:     "user not found",
 			login:    "unknownuser",
-			password: "password123",
+			password: testPassword,
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
 				userRepo.EXPECT().GetByLogin(mock.Anything, "unknownuser").Return(model.User{}, repository.ErrNotFound)
 			},
@@ -134,13 +140,13 @@ func TestAuthService_Login(t *testing.T) {
 		},
 		{
 			name:     "invalid password",
-			login:    "testuser",
+			login:    testLogin,
 			password: "wrongpassword",
 			setupMocks: func(userRepo *MockUserRepository, _ *MockTokenRepository) {
-				userRepo.EXPECT().GetByLogin(mock.Anything, "testuser").Return(model.User{
+				userRepo.EXPECT().GetByLogin(mock.Anything, testLogin).Return(model.User{
 					ID:       uuid.New(),
-					Login:    "testuser",
-					Password: hashPassword("password123"),
+					Login:    testLogin,
+					Password: hashPassword(testPassword),
 				}, nil)
 			},
 			wantErr: true,
@@ -195,7 +201,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        oldTokenID,
 					UserID:    userID,
-					TokenHash: "hashed",
+					TokenHash: testTokenHash,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}, nil)
 				tokenRepo.EXPECT().Revoke(mock.Anything, oldTokenID).Return(nil)
@@ -228,7 +234,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        uuid.New(),
 					UserID:    uuid.New(),
-					TokenHash: "hashed",
+					TokenHash: testTokenHash,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 					RevokedAt: &revokedAt,
 				}, nil)
@@ -280,7 +286,7 @@ func TestAuthService_RevokeToken(t *testing.T) {
 				tokenID := uuid.New()
 				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{
 					ID:        tokenID,
-					TokenHash: "hashed",
+					TokenHash: testTokenHash,
 				}, nil)
 				tokenRepo.EXPECT().Revoke(mock.Anything, tokenID).Return(nil)
 			},

@@ -1,3 +1,4 @@
+// nolint:goconst
 package service
 
 import (
@@ -16,8 +17,9 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
+//nolint:gosec
 func makeTestPayload() []byte {
-	p := model.LoginPasswordPayload{Login: "testuser", Password: "testpass"}
+	p := model.LoginPasswordPayload{Login: testLogin, Password: testPassword}
 	b, _ := json.Marshal(p)
 	return b
 }

@@ -1,3 +1,4 @@
+// nolint:goconst
 package handler
 
 import (
@@ -19,8 +20,14 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 )
 
+const (
+	testNotJSON = "not json"
+	testLogin   = "testuser"
+	testPass    = "testpass"
+)
+
 func makeTestDataModel(t *testing.T, userID, id uuid.UUID) *model.Data {
-	payload, err := json.Marshal(model.LoginPasswordPayload{Login: "testuser", Password: "testpass"})
+	payload, err := json.Marshal(model.LoginPasswordPayload{Login: testLogin, Password: testPass})
 	assert.NoError(t, err)
 	return &model.Data{
 		ID:       id,
@@ -55,8 +62,8 @@ func TestCreateData(t *testing.T) {
 					d := &server.Data{}
 					_ = d.FromLoginPasswordData(server.LoginPasswordData{
 						Type:     server.LoginPasswordDataTypeLOGINPASSWORD,
-						Login:    "testuser",
-						Password: "testpass",
+						Login:    testLogin,
+						Password: testPass,
 					})
 					return d
 				}(),
@@ -76,7 +83,7 @@ func TestCreateData(t *testing.T) {
 		{
 			name:           "invalid JSON",
 			withUser:       true,
-			body:           "not json",
+			body:           testNotJSON,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{

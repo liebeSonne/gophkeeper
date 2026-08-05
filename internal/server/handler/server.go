@@ -452,6 +452,7 @@ func (h *serverHandler) UploadChunk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// nolint:gosec
 	err := r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, "invalid multipart form")

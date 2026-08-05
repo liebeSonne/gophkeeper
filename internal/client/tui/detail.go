@@ -19,6 +19,18 @@ const (
 	fieldTypeFileID
 )
 
+const (
+	fieldNamePassword   = "Password"
+	fieldNameLogin      = "Login"
+	fieldNameMetadata   = "Metadata"
+	fieldNameServer     = "Server"
+	fieldNameText       = "Text"
+	fieldNameCardNumber = "Card Number"
+	fieldNameCardHolder = "Card Holder"
+	fieldNameCardExpiry = "Card Expiry"
+	fieldNameCardCVV    = "Card CVV"
+)
+
 type DetailField struct {
 	Label  string
 	Value  string
@@ -162,8 +174,8 @@ func NewLoginPasswordDetail(id uuid.UUID, login, password string, created, updat
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields: []DetailField{
-			{Label: "Login", Value: login, Type: fieldTypeText},
-			{Label: "Password", Value: password, Type: fieldTypePassword},
+			{Label: fieldNameLogin, Value: login, Type: fieldTypeText},
+			{Label: fieldNamePassword, Value: password, Type: fieldTypePassword},
 		},
 	}
 }
@@ -190,7 +202,7 @@ func NewTextDetail(id uuid.UUID, text string, created, updated time.Time) Detail
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields: []DetailField{
-			{Label: "Text", Value: text, Type: fieldTypeText},
+			{Label: fieldNameText, Value: text, Type: fieldTypeText},
 		},
 	}
 }
@@ -210,7 +222,7 @@ func NewFileDetail(id uuid.UUID, fileIDs []uuid.UUID, created, updated time.Time
 
 	return DetailModel{
 		ID:        id,
-		Type:      "FILE",
+		Type:      dataTypeFile,
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields:    fields,

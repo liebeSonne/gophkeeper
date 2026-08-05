@@ -30,10 +30,10 @@ type EditorModel struct {
 var dataTypes = []string{dataTypeLoginPassword, dataTypeBankCard, dataTypeText, dataTypeFile}
 
 var fieldTemplates = map[string][]string{
-	dataTypeLoginPassword: {"Login", "Password", "Metadata"},
-	dataTypeBankCard:      {"Card Number", "Card Holder", "Card Expiry", "Card CVV", "Metadata"},
-	dataTypeText:          {"Text", "Metadata"},
-	dataTypeFile:          {"File IDs (comma-separated)", "Metadata"},
+	dataTypeLoginPassword: {fieldNameLogin, fieldNamePassword, fieldNameMetadata},
+	dataTypeBankCard:      {fieldNameCardNumber, fieldNameCardHolder, fieldNameCardExpiry, fieldNameCardCVV, fieldNameMetadata},
+	dataTypeText:          {fieldNameText, fieldNameMetadata},
+	dataTypeFile:          {"File IDs (comma-separated)", fieldNameMetadata},
 }
 
 func NewEditorModel() EditorModel {
@@ -162,19 +162,19 @@ func (m *EditorModel) validate() error {
 	}
 
 	switch m.dataType {
-	case "LOGIN_PASSWORD":
-		if m.fields["Login"] == "" {
+	case dataTypeLoginPassword:
+		if m.fields[fieldNameLogin] == "" {
 			return fmt.Errorf("login is required")
 		}
-		if m.fields["Password"] == "" {
+		if m.fields[fieldNamePassword] == "" {
 			return fmt.Errorf("password is required")
 		}
-	case "BANK_CARD":
-		if m.fields["Card Number"] == "" {
+	case dataTypeBankCard:
+		if m.fields[fieldNameCardNumber] == "" {
 			return fmt.Errorf("card number is required")
 		}
-	case "TEXT":
-		if m.fields["Text"] == "" {
+	case dataTypeText:
+		if m.fields[fieldNameText] == "" {
 			return fmt.Errorf("text is required")
 		}
 	}
@@ -227,7 +227,7 @@ func (m EditorModel) renderFields() string {
 		style := highlighted(i == m.selected)
 		value := m.fields[field]
 
-		if field == "Password" || field == "Card CVV" {
+		if field == fieldNamePassword || field == "Card CVV" {
 			if value != "" {
 				value = strings.Repeat("•", len([]rune(value)))
 			}

@@ -1,3 +1,4 @@
+// nolint:goconst
 package service
 
 import (
@@ -20,12 +21,16 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/storage"
 )
 
+const (
+	testMimeType = "text/plain"
+)
+
 func makeTestFile(userID, id uuid.UUID) model.File {
 	return model.File{
 		ID:          id,
 		UserID:      userID,
 		Name:        "testfile.txt",
-		MimeType:    "text/plain",
+		MimeType:    testMimeType,
 		Size:        1024,
 		ChunksCount: 2,
 		Status:      model.FileStatusInProgress,
@@ -57,7 +62,7 @@ func TestFileService_InitUpload(t *testing.T) {
 			},
 			userID:      uuid.New(),
 			nameParam:   "testfile.txt",
-			mimeType:    "text/plain",
+			mimeType:    testMimeType,
 			size:        1024,
 			chunksCount: 2,
 			expectFile:  true,
@@ -68,7 +73,7 @@ func TestFileService_InitUpload(t *testing.T) {
 			},
 			userID:      uuid.New(),
 			nameParam:   "testfile.txt",
-			mimeType:    "text/plain",
+			mimeType:    testMimeType,
 			size:        1024,
 			chunksCount: 0,
 			expectError: true,
@@ -81,7 +86,7 @@ func TestFileService_InitUpload(t *testing.T) {
 			},
 			userID:      uuid.New(),
 			nameParam:   "testfile.txt",
-			mimeType:    "text/plain",
+			mimeType:    testMimeType,
 			size:        1024,
 			chunksCount: 2,
 			expectError: true,
@@ -378,7 +383,7 @@ func TestFileService_DownloadFile(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, reader)
 			defer reader.Close()
-			assert.Equal(t, "text/plain", mimeType)
+			assert.Equal(t, testMimeType, mimeType)
 			assert.Equal(t, int64(12), size)
 		})
 	}
