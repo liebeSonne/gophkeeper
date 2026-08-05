@@ -158,7 +158,7 @@ func (m DetailModel) GetMessage() string {
 func NewLoginPasswordDetail(id uuid.UUID, login, password string, created, updated time.Time) DetailModel {
 	return DetailModel{
 		ID:        id,
-		Type:      "LOGIN_PASSWORD",
+		Type:      dataTypeLoginPassword,
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields: []DetailField{
@@ -171,7 +171,7 @@ func NewLoginPasswordDetail(id uuid.UUID, login, password string, created, updat
 func NewBankCardDetail(id uuid.UUID, cardNumber, cardHolder, cardExpiry, cardCvv string, created, updated time.Time) DetailModel {
 	return DetailModel{
 		ID:        id,
-		Type:      "BANK_CARD",
+		Type:      dataTypeBankCard,
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields: []DetailField{
@@ -186,7 +186,7 @@ func NewBankCardDetail(id uuid.UUID, cardNumber, cardHolder, cardExpiry, cardCvv
 func NewTextDetail(id uuid.UUID, text string, created, updated time.Time) DetailModel {
 	return DetailModel{
 		ID:        id,
-		Type:      "TEXT",
+		Type:      dataTypeText,
 		CreatedAt: created,
 		UpdatedAt: updated,
 		Fields: []DetailField{
@@ -225,7 +225,7 @@ func NewFileItemDetail(id uuid.UUID, name, mimeType, status string, size int64, 
 
 	return DetailModel{
 		ID:        id,
-		Type:      "FILE",
+		Type:      dataTypeFile,
 		Title:     name,
 		CreatedAt: created,
 		UpdatedAt: updated,

@@ -14,6 +14,11 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/logger"
 )
 
+const (
+	testAccessToken  = "test-access-token"
+	testRefreshToken = "test-refresh-token"
+)
+
 func newTestStorage(t *testing.T) (ts *TokenStorage, cleanup func()) {
 	t.Helper()
 
@@ -39,8 +44,8 @@ func TestSaveAndGetTokens(t *testing.T) {
 	defer cleanup()
 
 	tokens := model.Token{
-		AccessToken:          "test-access-token",
-		RefreshToken:         "test-refresh-token",
+		AccessToken:          testAccessToken,
+		RefreshToken:         testRefreshToken,
 		AccessTokenExpiresAt: time.Now().Add(time.Hour),
 		RefreshExpiresAt:     time.Now().Add(24 * time.Hour),
 	}
@@ -70,8 +75,8 @@ func TestHasValidAccessToken(t *testing.T) {
 	assert.False(t, ts.HasValidAccessToken())
 
 	tokens := model.Token{
-		AccessToken:          "test-access-token",
-		RefreshToken:         "test-refresh-token",
+		AccessToken:          testAccessToken,
+		RefreshToken:         testRefreshToken,
 		AccessTokenExpiresAt: time.Now().Add(time.Hour),
 		RefreshExpiresAt:     time.Now().Add(24 * time.Hour),
 	}
@@ -85,8 +90,8 @@ func TestHasExpiredAccessToken(t *testing.T) {
 	defer cleanup()
 
 	tokens := model.Token{
-		AccessToken:          "test-access-token",
-		RefreshToken:         "test-refresh-token",
+		AccessToken:          testAccessToken,
+		RefreshToken:         testRefreshToken,
 		AccessTokenExpiresAt: time.Now().Add(-time.Hour),
 		RefreshExpiresAt:     time.Now().Add(24 * time.Hour),
 	}
@@ -100,8 +105,8 @@ func TestClearTokens(t *testing.T) {
 	defer cleanup()
 
 	tokens := model.Token{
-		AccessToken:          "test-access-token",
-		RefreshToken:         "test-refresh-token",
+		AccessToken:          testAccessToken,
+		RefreshToken:         testRefreshToken,
 		AccessTokenExpiresAt: time.Now().Add(time.Hour),
 		RefreshExpiresAt:     time.Now().Add(24 * time.Hour),
 	}
@@ -119,8 +124,8 @@ func TestUpdateTokens(t *testing.T) {
 	defer cleanup()
 
 	tokens := model.Token{
-		AccessToken:          "test-access-token",
-		RefreshToken:         "test-refresh-token",
+		AccessToken:          testAccessToken,
+		RefreshToken:         testRefreshToken,
 		AccessTokenExpiresAt: time.Now().Add(time.Hour),
 		RefreshExpiresAt:     time.Now().Add(24 * time.Hour),
 	}

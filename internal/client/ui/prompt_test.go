@@ -8,12 +8,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testLogin   = "user"
+	testPass    = "pass"
+	testSomeErr = "some error"
+)
+
 func TestPromptModel_Success(t *testing.T) {
 	m := promptModel{}
 
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("user")})
 	m = result.(promptModel)
-	assert.Equal(t, "user", m.login)
+	assert.Equal(t, testLogin, m.login)
 	assert.Equal(t, 0, m.field)
 
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -23,7 +29,7 @@ func TestPromptModel_Success(t *testing.T) {
 
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("pass")})
 	m = result.(promptModel)
-	assert.Equal(t, "pass", m.password)
+	assert.Equal(t, testPass, m.password)
 
 	result, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = result.(promptModel)
@@ -98,7 +104,7 @@ func TestMaskPassword(t *testing.T) {
 
 func TestView(t *testing.T) {
 	m := promptModel{
-		login: "user",
+		login: testLogin,
 		field: 0,
 	}
 
@@ -110,8 +116,8 @@ func TestView(t *testing.T) {
 
 func TestView_PasswordField(t *testing.T) {
 	m := promptModel{
-		login:    "user",
-		password: "pass",
+		login:    testLogin,
+		password: testPass,
 		field:    1,
 	}
 
@@ -145,7 +151,7 @@ func TestPromptModel_LoginNotEmptyValidation(t *testing.T) {
 }
 
 func TestPromptModel_PasswordNotEmptyValidation(t *testing.T) {
-	m := promptModel{login: "user", field: 1}
+	m := promptModel{login: testLogin, field: 1}
 
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = result.(promptModel)
@@ -166,7 +172,7 @@ func TestPromptModel_ViewQuit(t *testing.T) {
 }
 
 func TestPromptModel_TabClearsError(t *testing.T) {
-	m := promptModel{err: "some error"}
+	m := promptModel{err: testSomeErr}
 
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
 	m = result.(promptModel)
@@ -175,7 +181,7 @@ func TestPromptModel_TabClearsError(t *testing.T) {
 }
 
 func TestPromptModel_EnterClearsError(t *testing.T) {
-	m := promptModel{login: "user", err: "some error"}
+	m := promptModel{login: testLogin, err: testSomeErr}
 
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = result.(promptModel)
@@ -184,7 +190,7 @@ func TestPromptModel_EnterClearsError(t *testing.T) {
 }
 
 func TestPromptModel_InputClearsError(t *testing.T) {
-	m := promptModel{err: "some error"}
+	m := promptModel{err: testSomeErr}
 
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
 	m = result.(promptModel)

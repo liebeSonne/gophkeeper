@@ -16,6 +16,11 @@ import (
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
 
+const (
+	testDevToken = "dev-token"
+	testKeyPath  = "secret/data/key"
+)
+
 func TestNewVaultEncryptor(t *testing.T) {
 	validKey := make([]byte, 32)
 	validKey[0] = 1
@@ -34,7 +39,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 			name: "successful key load",
 			serverFn: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					assert.Equal(t, "dev-token", r.Header.Get("X-Vault-Token"))
+					assert.Equal(t, testDevToken, r.Header.Get("X-Vault-Token"))
 					assert.Equal(t, "GET", r.Method)
 
 					w.Header().Set("Content-Type", "application/json")
@@ -50,7 +55,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address: "",
-			token:   "dev-token",
+			token:   testDevToken,
 			keyPath: "secret/data/gophkeeper/encryption",
 			wantErr: false,
 		},
@@ -73,7 +78,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address: "",
-			token:   "dev-token",
+			token:   testDevToken,
 			keyPath: "custom/path/key",
 			wantErr: false,
 		},
@@ -96,7 +101,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address: "",
-			token:   "dev-token",
+			token:   testDevToken,
 			keyPath: "",
 			wantErr: false,
 		},
@@ -110,7 +115,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 			},
 			address:     "",
 			token:       "wrong-token",
-			keyPath:     "secret/data/key",
+			keyPath:     testKeyPath,
 			wantErr:     true,
 			errContains: "vault returned status 403",
 		},
@@ -123,7 +128,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address:     "",
-			token:       "dev-token",
+			token:       testDevToken,
 			keyPath:     "secret/data/nonexistent",
 			wantErr:     true,
 			errContains: "vault returned status 404",
@@ -137,8 +142,8 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address:     "",
-			token:       "dev-token",
-			keyPath:     "secret/data/key",
+			token:       testDevToken,
+			keyPath:     testKeyPath,
 			wantErr:     true,
 			errContains: "decode response",
 		},
@@ -159,8 +164,8 @@ func TestNewVaultEncryptor(t *testing.T) {
 				}))
 			},
 			address:     "",
-			token:       "dev-token",
-			keyPath:     "secret/data/key",
+			token:       testDevToken,
+			keyPath:     testKeyPath,
 			wantErr:     true,
 			errContains: "decode key",
 		},
@@ -170,8 +175,8 @@ func TestNewVaultEncryptor(t *testing.T) {
 				return nil
 			},
 			address:     "::not-a-valid-url::",
-			token:       "dev-token",
-			keyPath:     "secret/data/key",
+			token:       testDevToken,
+			keyPath:     testKeyPath,
 			wantErr:     true,
 			errContains: "parse vault address",
 		},
@@ -181,8 +186,8 @@ func TestNewVaultEncryptor(t *testing.T) {
 				return nil
 			},
 			address:     "ftp://vault:8200",
-			token:       "dev-token",
-			keyPath:     "secret/data/key",
+			token:       testDevToken,
+			keyPath:     testKeyPath,
 			wantErr:     true,
 			errContains: "unsupported scheme: ftp",
 		},
@@ -244,7 +249,7 @@ func TestVaultEncryptor_EncryptDecrypt(t *testing.T) {
 	l := intlogger.NewMockLogger(t)
 	l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
 
-	enc, err := NewVaultEncryptor(t.Context(), srv.URL, "dev-token", "secret/data/key", l)
+	enc, err := NewVaultEncryptor(t.Context(), srv.URL, testDevToken, testKeyPath, l)
 	require.NoError(t, err)
 
 	testCases := []struct {

@@ -27,13 +27,13 @@ type EditorModel struct {
 	submit     func() error
 }
 
-var dataTypes = []string{"LOGIN_PASSWORD", "BANK_CARD", "TEXT", "FILE"}
+var dataTypes = []string{dataTypeLoginPassword, dataTypeBankCard, dataTypeText, dataTypeFile}
 
 var fieldTemplates = map[string][]string{
-	"LOGIN_PASSWORD": {"Login", "Password", "Metadata"},
-	"BANK_CARD":      {"Card Number", "Card Holder", "Card Expiry", "Card CVV", "Metadata"},
-	"TEXT":           {"Text", "Metadata"},
-	"FILE":           {"File IDs (comma-separated)", "Metadata"},
+	dataTypeLoginPassword: {"Login", "Password", "Metadata"},
+	dataTypeBankCard:      {"Card Number", "Card Holder", "Card Expiry", "Card CVV", "Metadata"},
+	dataTypeText:          {"Text", "Metadata"},
+	dataTypeFile:          {"File IDs (comma-separated)", "Metadata"},
 }
 
 func NewEditorModel() EditorModel {
@@ -258,10 +258,10 @@ func (m EditorModel) renderFields() string {
 
 func (m EditorModel) getDataTypeLabel(dt string) string {
 	labels := map[string]string{
-		"LOGIN_PASSWORD": "Login & Password",
-		"BANK_CARD":      "Bank Card",
-		"TEXT":           "Text Note",
-		"FILE":           "File Reference",
+		dataTypeLoginPassword: "Login & Password",
+		dataTypeBankCard:      "Bank Card",
+		dataTypeText:          "Text Note",
+		dataTypeFile:          "File Reference",
 	}
 	if label, ok := labels[dt]; ok {
 		return label

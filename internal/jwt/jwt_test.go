@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testSecret = "testsecret"
+)
+
 func TestJWT_GenerateAndParse(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -33,7 +37,7 @@ func TestJWT_GenerateAndParse(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			userID := uuid.New()
-			jwt := NewJWT("testsecret", 15*time.Minute, 24*time.Hour)
+			jwt := NewJWT(testSecret, 15*time.Minute, 24*time.Hour)
 
 			tokenString, err := tc.generate(jwt, userID)
 			require.NoError(t, err)
@@ -76,7 +80,7 @@ func TestJWT_ParseInvalidToken(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jwt := NewJWT("testsecret", 15*time.Minute, 24*time.Hour)
+			jwt := NewJWT(testSecret, 15*time.Minute, 24*time.Hour)
 
 			_, err := tc.parse(jwt, tc.token)
 			if tc.wantErr {
@@ -90,7 +94,7 @@ func TestJWT_ParseInvalidToken(t *testing.T) {
 
 func TestJWT_WrongTokenType(t *testing.T) {
 	userID := uuid.New()
-	jwt := NewJWT("testsecret", 15*time.Minute, 24*time.Hour)
+	jwt := NewJWT(testSecret, 15*time.Minute, 24*time.Hour)
 
 	// Generate access token but try to parse as refresh
 	accessToken, err := jwt.GenerateAccess(userID)
@@ -124,7 +128,7 @@ func TestJWT_WrongSecret(t *testing.T) {
 func TestJWT_TTLAccessors(t *testing.T) {
 	accessTTL := 30 * time.Minute
 	refreshTTL := 48 * time.Hour
-	jwt := NewJWT("testsecret", accessTTL, refreshTTL)
+	jwt := NewJWT(testSecret, accessTTL, refreshTTL)
 
 	assert.Equal(t, accessTTL, jwt.AccessTTL())
 	assert.Equal(t, refreshTTL, jwt.RefreshTTL())

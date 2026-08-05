@@ -92,7 +92,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *ListModel) cycleFilterType() {
-	types := []string{"", "LOGIN_PASSWORD", "BANK_CARD", "TEXT", "FILE"}
+	types := []string{"", dataTypeLoginPassword, dataTypeBankCard, dataTypeText, dataTypeFile}
 	for i, t := range types {
 		if m.filterType == t {
 			m.filterType = types[(i+1)%len(types)]

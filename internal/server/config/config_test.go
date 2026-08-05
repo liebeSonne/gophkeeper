@@ -10,6 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testGKServer      = "gophkeeper-server"
+	testSecret        = "testsecret"
+	testServerAddress = "127.0.0.1:9090"
+	testJWTSecret     = "envsecret"
+	testVaultAddress  = "http://127.0.0.1:8200"
+	testDevToken      = "dev-token"
+	testMinioKey      = "minioadmin"
+	testMinioSecret   = "minioadminsecret"
+	testBucket        = "mybucket"
+	testEndpoint      = "localhost:9000"
+)
+
 func makeEnvKey(envPrefix, name string) string {
 	if envPrefix == "" {
 		return name
@@ -30,9 +43,9 @@ func TestLoad(t *testing.T) {
 	}{
 		{
 			name: "defaults",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
-				EnvJWTSecret:     "testsecret",
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
@@ -40,7 +53,7 @@ func TestLoad(t *testing.T) {
 				ServerAddress: DefaultServerAddress,
 				EnableHTTPS:   DefaultEnableHTTPS,
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -48,18 +61,18 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env override",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
 				EnvLogLevel:      LogLevelDebug,
-				EnvServerAddress: "127.0.0.1:9090",
-				EnvJWTSecret:     "testsecret",
+				EnvServerAddress: testServerAddress,
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelDebug,
-				ServerAddress: "127.0.0.1:9090",
+				ServerAddress: testServerAddress,
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -68,21 +81,21 @@ func TestLoad(t *testing.T) {
 		{
 			name: "flags override env",
 			args: []string{
-				"gophkeeper-server",
+				testGKServer,
 				fmt.Sprintf("--%s", FlagLogLevel), LogLevelError,
 				fmt.Sprintf("--%s", FlagServerAddress), "0.0.0.0:3000",
 			},
 			setEnv: map[string]string{
 				EnvLogLevel:      LogLevelDebug,
-				EnvServerAddress: "127.0.0.1:9090",
-				EnvJWTSecret:     "testsecret",
+				EnvServerAddress: testServerAddress,
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelError,
 				ServerAddress: "0.0.0.0:3000",
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -90,12 +103,12 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env enable https",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
 				EnvEnableHTTPS:   "true",
 				EnvTLSCert:       "/path/cert.pem",
 				EnvTLSKey:        "/path/key.pem",
-				EnvJWTSecret:     "testsecret",
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
@@ -105,7 +118,7 @@ func TestLoad(t *testing.T) {
 				TLSCert:       "/path/cert.pem",
 				TLSKey:        "/path/key.pem",
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -113,17 +126,17 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env database uri",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
 				EnvDatabaseURI:   "postgres://myuser:mypass@db.example.com:5432/mydb?sslmode=require",
-				EnvJWTSecret:     "testsecret",
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelInfo,
 				ServerAddress: DefaultServerAddress,
 				DatabaseURI:   "postgres://myuser:mypass@db.example.com:5432/mydb?sslmode=require",
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -132,19 +145,19 @@ func TestLoad(t *testing.T) {
 		{
 			name: "flag database uri",
 			args: []string{
-				"gophkeeper-server",
+				testGKServer,
 				fmt.Sprintf("--%s", FlagDatabaseURI), "postgres://user:pass@localhost:5432/testdb?sslmode=disable",
 			},
 			setEnv: map[string]string{
 				EnvDatabaseURI:   "postgres://envuser:envpass@envhost:5432/envdb?sslmode=disable",
-				EnvJWTSecret:     "testsecret",
+				EnvJWTSecret:     testSecret,
 				EnvEncryptionKey: testEncryptionKey,
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelInfo,
 				ServerAddress: DefaultServerAddress,
 				DatabaseURI:   "postgres://user:pass@localhost:5432/testdb?sslmode=disable",
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EncryptionKey: testEncryptionKey,
@@ -152,7 +165,7 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "defaults with jwt",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
 				EnvJWTSecret:     "mysecret",
 				EnvEncryptionKey: testEncryptionKey,
@@ -169,9 +182,9 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env jwt params",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
-				EnvJWTSecret:     "envsecret",
+				EnvJWTSecret:     testJWTSecret,
 				EnvJWTAccessTTL:  "30m",
 				EnvJWTRefreshTTL: "48h",
 				EnvEncryptionKey: testEncryptionKey,
@@ -180,7 +193,7 @@ func TestLoad(t *testing.T) {
 				LogLevel:      LogLevelInfo,
 				ServerAddress: DefaultServerAddress,
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "envsecret",
+				JWTSecret:     testJWTSecret,
 				JWTAccessTTL:  30 * time.Minute,
 				JWTRefreshTTL: 48 * time.Hour,
 				EncryptionKey: testEncryptionKey,
@@ -189,13 +202,13 @@ func TestLoad(t *testing.T) {
 		{
 			name: "flag jwt override env",
 			args: []string{
-				"gophkeeper-server",
+				testGKServer,
 				fmt.Sprintf("--%s", FlagJWTSecret), "flagsecret",
 				fmt.Sprintf("--%s", FlagJWTAccessTTL), "10m",
 				fmt.Sprintf("--%s", FlagJWTRefreshTTL), "12h",
 			},
 			setEnv: map[string]string{
-				EnvJWTSecret:     "envsecret",
+				EnvJWTSecret:     testJWTSecret,
 				EnvJWTAccessTTL:  "30m",
 				EnvJWTRefreshTTL: "48h",
 				EnvEncryptionKey: testEncryptionKey,
@@ -212,43 +225,43 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env vault config",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
-				EnvJWTSecret:    "testsecret",
+				EnvJWTSecret:    testSecret,
 				EnvEnableVault:  "true",
-				EnvVaultAddress: "http://127.0.0.1:8200",
-				EnvVaultToken:   "dev-token",
+				EnvVaultAddress: testVaultAddress,
+				EnvVaultToken:   testDevToken,
 				EnvVaultKeyPath: "secret/data/gophkeeper/encryption",
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelInfo,
 				ServerAddress: DefaultServerAddress,
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EnableVault:   true,
-				VaultAddress:  "http://127.0.0.1:8200",
-				VaultToken:    "dev-token",
+				VaultAddress:  testVaultAddress,
+				VaultToken:    testDevToken,
 				VaultKeyPath:  "secret/data/gophkeeper/encryption",
 			},
 		},
 		{
 			name: "flag vault config",
 			args: []string{
-				"gophkeeper-server",
+				testGKServer,
 				"--vault",
 				fmt.Sprintf("--%s", FlagVaultAddress), "http://vault:8200",
 				fmt.Sprintf("--%s", FlagVaultToken), "my-token",
 			},
 			setEnv: map[string]string{
-				EnvJWTSecret: "testsecret",
+				EnvJWTSecret: testSecret,
 			},
 			want: ServerConfig{
 				LogLevel:      LogLevelInfo,
 				ServerAddress: DefaultServerAddress,
 				DatabaseURI:   DefaultDatabaseURI,
-				JWTSecret:     "testsecret",
+				JWTSecret:     testSecret,
 				JWTAccessTTL:  DefaultJWTAccessTTL,
 				JWTRefreshTTL: DefaultJWTRefreshTTL,
 				EnableVault:   true,
@@ -259,27 +272,27 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "env storage config",
-			args: []string{"gophkeeper-server"},
+			args: []string{testGKServer},
 			setEnv: map[string]string{
-				EnvJWTSecret:        "testsecret",
+				EnvJWTSecret:        testSecret,
 				EnvEncryptionKey:    testEncryptionKey,
-				EnvStorageEndpoint:  "localhost:9000",
-				EnvStorageAccessKey: "minioadmin",
-				EnvStorageSecretKey: "minioadmin",
-				EnvStorageBucket:    "mybucket",
+				EnvStorageEndpoint:  testEndpoint,
+				EnvStorageAccessKey: testMinioKey,
+				EnvStorageSecretKey: testMinioSecret,
+				EnvStorageBucket:    testBucket,
 			},
 			want: ServerConfig{
 				LogLevel:         LogLevelInfo,
 				ServerAddress:    DefaultServerAddress,
 				DatabaseURI:      DefaultDatabaseURI,
-				JWTSecret:        "testsecret",
+				JWTSecret:        testSecret,
 				JWTAccessTTL:     DefaultJWTAccessTTL,
 				JWTRefreshTTL:    DefaultJWTRefreshTTL,
 				EncryptionKey:    testEncryptionKey,
-				StorageEndpoint:  "localhost:9000",
-				StorageAccessKey: "minioadmin",
-				StorageSecretKey: "minioadmin",
-				StorageBucket:    "mybucket",
+				StorageEndpoint:  testEndpoint,
+				StorageAccessKey: testMinioKey,
+				StorageSecretKey: testMinioSecret,
+				StorageBucket:    testBucket,
 				StorageSecure:    false,
 			},
 		},
