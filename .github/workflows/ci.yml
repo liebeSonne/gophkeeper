@@ -34,6 +34,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60
+          install-mode: goinstall
 
       - name: Run lint
         run: CGO_ENABLED=0 make lint
