@@ -3,6 +3,8 @@ COMMIT := $(shell git rev-parse HEAD)
 BUILD_TIME := $(shell date +'%Y/%m/%d %H:%M:%S')
 LDFLAGS := -X main.buildVersion=$(VERSION) -X 'main.buildDate=$(BUILD_TIME)' -X main.buildCommit=$(COMMIT)
 
+PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
+
 .DEFAULT_GOAL := all
 
 .PHONY: all
@@ -14,14 +16,34 @@ help: ## Show available targets
 
 .PHONY: build-server
 build-server: ## Build server binary
-	@go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-server ./cmd/server
+	@CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-server ./cmd/server
 
 .PHONY: build-client
 build-client: ## Build client binary
-	@go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-client ./cmd/client
+	@CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-client ./cmd/client
 
 .PHONY: build
 build: build-server build-client
+
+.PHONY: build-server-%
+build-server-%: ## Build server for specific platform (e.g., linux-amd64)
+	@GOOS=$(word 1,$(subst -, ,$*)) GOARCH=$(word 2,$(subst -, ,$*)) CGO_ENABLED=0 \
+		go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-server-$* ./cmd/server
+
+.PHONY: build-client-%
+build-client-%: ## Build client for specific platform (e.g., linux-amd64)
+	@GOOS=$(word 1,$(subst -, ,$*)) GOARCH=$(word 2,$(subst -, ,$*)) CGO_ENABLED=0 \
+		go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-client-$* ./cmd/client
+
+.PHONY: build-all
+build-all: ## Build all platforms
+	@mkdir -p bin
+	@for platform in $(PLATFORMS); do \
+		GOOS=$$(echo $${platform} | cut -d'-' -f1) GOARCH=$$(echo $${platform} | cut -d'-' -f2) CGO_ENABLED=0 \
+			go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-server-$${platform} ./cmd/server && \
+		GOOS=$$(echo $${platform} | cut -d'-' -f1) GOARCH=$$(echo $${platform} | cut -d'-' -f2) CGO_ENABLED=0 \
+			go build -ldflags="$(LDFLAGS)" -o bin/gophkeeper-client-$${platform} ./cmd/client; \
+	done
 
 .PHONY: clean
 clean: ## Remove binaries
