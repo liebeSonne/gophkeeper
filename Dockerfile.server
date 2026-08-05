@@ -1,0 +1,32 @@
+FROM golang:1.26-alpine AS builder
+
+RUN apk --no-cache add git ca-certificates
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=dev
+ARG DATE=unknown
+ARG COMMIT=unknown
+
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-s -w -X github.com/liebeSonne/gophkeeper/cmd/server.version=${VERSION} -X github.com/liebeSonne/gophkeeper/cmd/server.buildDate=${DATE} -X github.com/liebeSonne/gophkeeper/cmd/server.commit=${COMMIT}" \
+    -o /gophkeeper-server ./cmd/server
+
+FROM alpine:3.20
+
+RUN apk --no-cache add ca-certificates
+
+RUN addgroup -S gophkeeper && adduser -S gophkeeper -G gophkeeper
+
+COPY --from=builder /gophkeeper-server /usr/local/bin/
+
+USER gophkeeper
+
+EXPOSE 8080
+
+ENTRYPOINT ["gophkeeper-server"]
