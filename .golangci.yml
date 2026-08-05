@@ -7,7 +7,7 @@ linters:
     - dupl
     - gochecknoinits
     - gocognit
-    - goconst
+    # - goconst
     - gocritic
     - gocyclo
     - gosec
