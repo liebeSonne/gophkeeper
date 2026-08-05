@@ -26,6 +26,7 @@ const (
 	testPass    = "testpass"
 )
 
+// nolint:gosec
 func makeTestDataModel(t *testing.T, userID, id uuid.UUID) *model.Data {
 	payload, err := json.Marshal(model.LoginPasswordPayload{Login: testLogin, Password: testPass})
 	assert.NoError(t, err)

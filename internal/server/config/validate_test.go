@@ -88,7 +88,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:    "valid vault config",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200", VaultToken: testDevToken},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: testVaultAddress, VaultToken: testDevToken},
 			wantErr: nil,
 		},
 		{
@@ -98,7 +98,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:    "vault without token",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200"},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: testVaultAddress},
 			wantErr: errEmptyVaultToken,
 		},
 		{
@@ -108,7 +108,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:    "both vault and encryption key",
-			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: "http://127.0.0.1:8200", VaultToken: testDevToken, EncryptionKey: encryptionKey},
+			cfg:     ServerConfig{LogLevel: LogLevelInfo, ServerAddress: DefaultServerAddress, JWTSecret: jwtSecret1, EnableVault: true, VaultAddress: testVaultAddress, VaultToken: testDevToken, EncryptionKey: encryptionKey},
 			wantErr: errBothVaultAndEncryptionKey,
 		},
 	}
