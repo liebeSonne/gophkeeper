@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 		if cmd.Name() == "version" {
 			return nil
 		}
-		logLevel, _ := cmd.Flags().GetString("log-level")
+		logLevel, _ := cmd.InheritedFlags().GetString("log-level")
 		_, err := app.EnsureInitialized(logLevel)
 		return err
 	},
