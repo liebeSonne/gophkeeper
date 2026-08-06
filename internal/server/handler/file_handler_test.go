@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -364,4 +365,127 @@ func (r *readCloser) Close() error {
 
 func intPtr(i int) *int {
 	return &i
+}
+
+func TestUploadChunk(t *testing.T) {
+	userID := uuid.New()
+	fileID := uuid.New()
+
+	testCases := []struct {
+		name           string
+		withUser       bool
+		setupMock      func(*MockFileService)
+		fileID         string
+		chunkIndex     string
+		data           string
+		expectedStatus int
+	}{
+		{
+			name:     "upload chunk success",
+			withUser: true,
+			setupMock: func(m *MockFileService) {
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(nil)
+			},
+			fileID:         fileID.String(),
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "upload chunk unauthorized",
+			withUser:       false,
+			fileID:         fileID.String(),
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:     "upload chunk file not found",
+			withUser: true,
+			setupMock: func(m *MockFileService) {
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(apperrors.ErrFileNotFound)
+			},
+			fileID:         fileID.String(),
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:     "upload chunk access denied",
+			withUser: true,
+			setupMock: func(m *MockFileService) {
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(apperrors.ErrFileAccessDenied)
+			},
+			fileID:         fileID.String(),
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "upload chunk invalid file id",
+			withUser:       true,
+			fileID:         "invalid-uuid",
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "upload chunk invalid chunk index",
+			withUser:       true,
+			fileID:         fileID.String(),
+			chunkIndex:     "invalid",
+			data:           "chunk data content",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:     "upload chunk service error",
+			withUser: true,
+			setupMock: func(m *MockFileService) {
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(errors.New("storage error"))
+			},
+			fileID:         fileID.String(),
+			chunkIndex:     "0",
+			data:           "chunk data content",
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockAuthService := NewMockAuthService(t)
+			mockDataService := NewMockDataService(t)
+			mockFileService := NewMockFileService(t)
+			if tc.setupMock != nil {
+				tc.setupMock(mockFileService)
+			}
+			l := intlogger.NewMockLogger(t)
+			l.On("Error", mock.Anything, mock.Anything).Return().Maybe()
+
+			h := NewServerHandler(mockAuthService, mockDataService, mockFileService, l)
+
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+
+			_ = writer.WriteField("file_id", tc.fileID)
+			_ = writer.WriteField("chunk_index", tc.chunkIndex)
+
+			dataWriter, err := writer.CreateFormFile("data", "chunk.bin")
+			require.NoError(t, err)
+			_, _ = dataWriter.Write([]byte(tc.data))
+			_ = writer.Close()
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/files/upload/"+fileID.String()+"/chunk/0", body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			if tc.withUser {
+				ctx := authctx.CreateTokenContext(req.Context(), userID)
+				req = req.WithContext(ctx)
+			}
+			rr := httptest.NewRecorder()
+
+			h.UploadChunk(rr, req)
+
+			assert.Equal(t, tc.expectedStatus, rr.Code, "response body: %s", rr.Body.String())
+			mockFileService.AssertExpectations(t)
+		})
+	}
 }

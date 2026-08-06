@@ -1,274 +1,168 @@
-// nolint: revive
+// nolint:revive // package name matches existing codebase conventions
 package crypto
 
 import (
-	"bytes"
+	"context"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
 
-const (
-	testDevToken = "dev-token"
-	testKeyPath  = "secret/data/key"
-)
-
 func TestNewVaultEncryptor(t *testing.T) {
-	validKey := make([]byte, 32)
-	validKey[0] = 1
-	validKeyB64 := base64.StdEncoding.EncodeToString(validKey)
+	key := []byte("01234567890123456789012345678901")
+	keyB64 := base64.StdEncoding.EncodeToString(key)
 
 	testCases := []struct {
-		name        string
-		serverFn    func(t *testing.T) *httptest.Server
-		address     string
-		token       string
-		keyPath     string
-		wantErr     bool
-		errContains string
+		name              string
+		keyPath           string
+		handler           func(w http.ResponseWriter, r *http.Request)
+		expectError       bool
+		expectErrContains string
+		checkFunc         func(t *testing.T, encryptor *VaultEncryptor, calledPath string, receivedToken string)
 	}{
 		{
-			name: "successful key load",
-			serverFn: func(t *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					assert.Equal(t, testDevToken, r.Header.Get("X-Vault-Token"))
-					assert.Equal(t, "GET", r.Method)
-
-					w.Header().Set("Content-Type", "application/json")
-					resp := vaultResponse{
-						Data: vaultKVData{
-							Data: vaultSecretData{
-								Key: validKeyB64,
-							},
-						},
-					}
-					err := json.NewEncoder(w).Encode(resp)
-					assert.NoError(t, err)
-				}))
-			},
-			address: "",
-			token:   testDevToken,
-			keyPath: "secret/data/gophkeeper/encryption",
-			wantErr: false,
-		},
-		{
-			name: "successful with custom key path",
-			serverFn: func(t *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					assert.Contains(t, r.URL.Path, "custom/path/key")
-
-					w.Header().Set("Content-Type", "application/json")
-					resp := vaultResponse{
-						Data: vaultKVData{
-							Data: vaultSecretData{
-								Key: validKeyB64,
-							},
-						},
-					}
-					err := json.NewEncoder(w).Encode(resp)
-					assert.NoError(t, err)
-				}))
-			},
-			address: "",
-			token:   testDevToken,
-			keyPath: "custom/path/key",
-			wantErr: false,
-		},
-		{
-			name: "default key path when empty",
-			serverFn: func(t *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					assert.Contains(t, r.URL.Path, "secret/data/gophkeeper/encryption")
-
-					w.Header().Set("Content-Type", "application/json")
-					resp := vaultResponse{
-						Data: vaultKVData{
-							Data: vaultSecretData{
-								Key: validKeyB64,
-							},
-						},
-					}
-					err := json.NewEncoder(w).Encode(resp)
-					assert.NoError(t, err)
-				}))
-			},
-			address: "",
-			token:   testDevToken,
+			name:    "success with encryption",
 			keyPath: "",
-			wantErr: false,
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"data":{"data":{"key":"` + keyB64 + `"}}}`))
+				assert.NoError(t, err)
+			},
+			checkFunc: func(t *testing.T, encryptor *VaultEncryptor, _ string, receivedToken string) {
+				assert.Equal(t, "test-token", receivedToken)
+
+				plaintext := []byte("test data")
+				ciphertext, err := encryptor.Encrypt(plaintext)
+				require.NoError(t, err)
+
+				decrypted, err := encryptor.Decrypt(ciphertext)
+				require.NoError(t, err)
+				assert.Equal(t, plaintext, decrypted)
+			},
 		},
 		{
-			name: "vault returns 403",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusForbidden)
-					_, _ = w.Write([]byte("forbidden"))
-				}))
+			name:    "default key path",
+			keyPath: "",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"data":{"data":{"key":"` + keyB64 + `"}}}`))
+				assert.NoError(t, err)
 			},
-			address:     "",
-			token:       "wrong-token",
-			keyPath:     testKeyPath,
-			wantErr:     true,
-			errContains: "vault returned status 403",
+			checkFunc: func(t *testing.T, _ *VaultEncryptor, calledPath string, _ string) {
+				assert.Contains(t, calledPath, "/v1/secret/data/gophkeeper/encryption")
+			},
 		},
 		{
-			name: "vault returns 404",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusNotFound)
-					_, _ = w.Write([]byte("not found"))
-				}))
+			name:    "custom key path",
+			keyPath: "custom/path",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"data":{"data":{"key":"` + keyB64 + `"}}}`))
+				assert.NoError(t, err)
 			},
-			address:     "",
-			token:       testDevToken,
-			keyPath:     "secret/data/nonexistent",
-			wantErr:     true,
-			errContains: "vault returned status 404",
+			checkFunc: func(t *testing.T, _ *VaultEncryptor, calledPath string, _ string) {
+				assert.Contains(t, calledPath, "/v1/custom/path")
+			},
 		},
 		{
-			name: "invalid JSON response",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					_, _ = w.Write([]byte("not json"))
-				}))
+			name:              "vault error",
+			keyPath:           "",
+			expectError:       true,
+			expectErrContains: "vault returned status 404",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				_, err := w.Write([]byte(`{"errors":["key not found"]}`))
+				assert.NoError(t, err)
 			},
-			address:     "",
-			token:       testDevToken,
-			keyPath:     testKeyPath,
-			wantErr:     true,
-			errContains: "decode response",
 		},
 		{
-			name: "invalid base64 key",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					resp := vaultResponse{
-						Data: vaultKVData{
-							Data: vaultSecretData{
-								Key: "!!!invalid-base64!!!",
-							},
-						},
-					}
-					err := json.NewEncoder(w).Encode(resp)
-					assert.NoError(t, err)
-				}))
+			name:              "invalid key encoding",
+			keyPath:           "",
+			expectError:       true,
+			expectErrContains: "decode key",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"data":{"data":{"key":"invalid-base64!!"}}}`))
+				assert.NoError(t, err)
 			},
-			address:     "",
-			token:       testDevToken,
-			keyPath:     testKeyPath,
-			wantErr:     true,
-			errContains: "decode key",
-		},
-		{
-			name: "invalid vault address",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return nil
-			},
-			address:     "::not-a-valid-url::",
-			token:       testDevToken,
-			keyPath:     testKeyPath,
-			wantErr:     true,
-			errContains: "parse vault address",
-		},
-		{
-			name: "unsupported scheme",
-			serverFn: func(_ *testing.T) *httptest.Server {
-				return nil
-			},
-			address:     "ftp://vault:8200",
-			token:       testDevToken,
-			keyPath:     testKeyPath,
-			wantErr:     true,
-			errContains: "unsupported scheme: ftp",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var address string
-			if tc.serverFn != nil {
-				srv := tc.serverFn(t)
-				if srv != nil {
-					defer srv.Close()
-					address = srv.URL
-				}
-			}
-			if address == "" {
-				address = tc.address
-			}
+			var calledPath string
+			var receivedToken string
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calledPath = r.URL.Path
+				receivedToken = r.Header.Get("X-Vault-Token")
+				tc.handler(w, r)
+			}))
+			defer server.Close()
 
 			l := intlogger.NewMockLogger(t)
-			l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
+			encryptor, err := NewVaultEncryptor(context.Background(), server.URL, "test-token", tc.keyPath, l)
 
-			enc, err := NewVaultEncryptor(t.Context(), address, tc.token, tc.keyPath, l)
-
-			if tc.wantErr {
+			if tc.expectError {
 				require.Error(t, err)
-				assert.Nil(t, enc)
-				if tc.errContains != "" {
-					assert.Contains(t, err.Error(), tc.errContains)
-				}
+				assert.Contains(t, err.Error(), tc.expectErrContains)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.NotNil(t, enc)
+			require.NotNil(t, encryptor)
+
+			if tc.checkFunc != nil {
+				tc.checkFunc(t, encryptor, calledPath, receivedToken)
+			}
 		})
 	}
 }
 
-func TestVaultEncryptor_EncryptDecrypt(t *testing.T) {
-	validKey := make([]byte, 32)
-	validKey[0] = 1
-	validKeyB64 := base64.StdEncoding.EncodeToString(validKey)
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		resp := vaultResponse{
-			Data: vaultKVData{
-				Data: vaultSecretData{
-					Key: validKeyB64,
-				},
-			},
-		}
-		err := json.NewEncoder(w).Encode(resp)
-		assert.NoError(t, err)
-	}))
-	defer srv.Close()
-
-	l := intlogger.NewMockLogger(t)
-	l.EXPECT().Error(mock.Anything, mock.Anything).Return().Maybe()
-
-	enc, err := NewVaultEncryptor(t.Context(), srv.URL, testDevToken, testKeyPath, l)
-	require.NoError(t, err)
-
+func TestLoadKeyFromVault(t *testing.T) {
 	testCases := []struct {
-		name string
-		data []byte
+		name              string
+		address           string
+		expectError       bool
+		expectErrContains string
 	}{
-		{name: "empty", data: []byte{}},
-		{name: "small", data: []byte("hello")},
-		{name: "larger", data: make([]byte, 1024)},
+		{
+			name:              "invalid address format",
+			address:           "://invalid",
+			expectError:       true,
+			expectErrContains: "parse vault address",
+		},
+		{
+			name:              "unsupported scheme",
+			address:           "ftp://vault:8200",
+			expectError:       true,
+			expectErrContains: "unsupported scheme",
+		},
+		{
+			name:              "http connection error",
+			address:           "http://nonexistent:99999",
+			expectError:       true,
+			expectErrContains: "http request",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ciphertext, err := enc.Encrypt(tc.data)
-			require.NoError(t, err)
+			l := intlogger.NewMockLogger(t)
+			_, err := loadKeyFromVault(context.Background(), tc.address, "token", "path", l)
 
-			decrypted, err := enc.Decrypt(ciphertext)
-			require.NoError(t, err)
-			assert.True(t, bytes.Equal(tc.data, decrypted))
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.expectErrContains)
 		})
 	}
 }

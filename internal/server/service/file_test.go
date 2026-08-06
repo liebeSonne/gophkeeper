@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -261,6 +262,54 @@ func TestFileService_CompleteUpload(t *testing.T) {
 				file := makeTestFile(testUser, testFileID)
 				repo.On("GetFileByID", mock.Anything, testFileID).Return(file, nil)
 				repo.On("GetUploadedChunksCount", mock.Anything, testFileID).Return(1, nil)
+			},
+			fileID:      testFileID,
+			userID:      testUser,
+			expectError: true,
+		},
+		{
+			name: "successful complete upload",
+			setupMocks: func(repo *MockFileRepository, _ *crypto.MockEncryptor, minio *storage.MockMinIOClient) {
+				file := makeTestFile(testUser, testFileID)
+				repo.On("GetFileByID", mock.Anything, testFileID).Return(file, nil)
+				repo.On("GetUploadedChunksCount", mock.Anything, testFileID).Return(file.ChunksCount, nil)
+				for i := 0; i < file.ChunksCount; i++ {
+					minio.On("GetObject", mock.Anything, "testbucket", mock.Anything).
+						Return(&readCloser{bytes.NewReader([]byte("chunk" + fmt.Sprint(i)))}, int64(5), nil)
+				}
+				minio.On("PutObject", mock.Anything, "testbucket", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				minio.On("DeleteObjects", mock.Anything, "testbucket", mock.Anything).Return(nil)
+				repo.On("UpdateFileStatus", mock.Anything, testFileID, model.FileStatusCompleted).Return(nil)
+			},
+			fileID: testFileID,
+			userID: testUser,
+		},
+		{
+			name: "complete upload get chunk error",
+			setupMocks: func(repo *MockFileRepository, _ *crypto.MockEncryptor, minio *storage.MockMinIOClient) {
+				file := makeTestFile(testUser, testFileID)
+				repo.On("GetFileByID", mock.Anything, testFileID).Return(file, nil)
+				repo.On("GetUploadedChunksCount", mock.Anything, testFileID).Return(file.ChunksCount, nil)
+				minio.On("GetObject", mock.Anything, "testbucket", mock.Anything).
+					Return(nil, int64(0), errors.New("minio error"))
+				repo.On("UpdateFileStatus", mock.Anything, testFileID, model.FileStatusFailed).Return(nil)
+			},
+			fileID:      testFileID,
+			userID:      testUser,
+			expectError: true,
+		},
+		{
+			name: "complete upload put object error",
+			setupMocks: func(repo *MockFileRepository, _ *crypto.MockEncryptor, minio *storage.MockMinIOClient) {
+				file := makeTestFile(testUser, testFileID)
+				repo.On("GetFileByID", mock.Anything, testFileID).Return(file, nil)
+				repo.On("GetUploadedChunksCount", mock.Anything, testFileID).Return(file.ChunksCount, nil)
+				for i := 0; i < file.ChunksCount; i++ {
+					minio.On("GetObject", mock.Anything, "testbucket", mock.Anything).
+						Return(&readCloser{bytes.NewReader([]byte("chunk" + fmt.Sprint(i)))}, int64(5), nil)
+				}
+				minio.On("PutObject", mock.Anything, "testbucket", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("put error"))
+				repo.On("UpdateFileStatus", mock.Anything, testFileID, model.FileStatusFailed).Return(nil)
 			},
 			fileID:      testFileID,
 			userID:      testUser,
@@ -560,4 +609,12 @@ func TestFileService_ListFiles(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+type readCloser struct {
+	*bytes.Reader
+}
+
+func (r *readCloser) Close() error {
+	return nil
 }

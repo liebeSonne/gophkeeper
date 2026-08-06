@@ -341,6 +341,128 @@ func TestAPIClient(t *testing.T) {
 				require.Error(t, err)
 			},
 		},
+		{
+			name: "complete upload success",
+			path: "/api/v1/files/upload/complete",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"file_id":"550e8400-e29b-41d4-a716-446655440000","name":"testfile.txt","status":"COMPLETED"}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				resp, err := c.CompleteUpload(context.Background(), openapi_types.UUID([16]byte{}))
+				require.NoError(t, err)
+				assert.NotNil(t, resp)
+			},
+		},
+		{
+			name: "complete upload not found",
+			path: "/api/v1/files/upload/complete",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				_, err := w.Write([]byte(`{"message":"file not found"}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				_, err := c.CompleteUpload(context.Background(), openapi_types.UUID([16]byte{}))
+				require.Error(t, err)
+			},
+		},
+		{
+			name: "download file success",
+			path: "/api/v1/files/550e8400-e29b-41d4-a716-446655440000/download",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/octet-stream")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte("file content"))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				resp, err := c.DownloadFile(context.Background(), openapi_types.UUID([16]byte{}))
+				require.NoError(t, err)
+				assert.NotNil(t, resp)
+			},
+		},
+		{
+			name: "download file not found",
+			path: "/api/v1/files/nonexistent/download",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				_, err := w.Write([]byte(`{"message":"file not found"}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				_, err := c.DownloadFile(context.Background(), openapi_types.UUID([16]byte{}))
+				require.Error(t, err)
+			},
+		},
+		{
+			name: "set refresh token",
+			path: "/api/v1/data",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"items":[],"page":1,"page_size":20,"total":0,"total_pages":1}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetRefreshToken(func(_ context.Context) error {
+					return nil
+				})
+				c.SetAuthToken("test-token")
+				_, err := c.ListData(context.Background(), nil, nil, nil, nil)
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "api error returns error",
+			path: "/api/v1/data",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				_, err := w.Write([]byte(`{"message":"test error message"}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				_, err := c.ListData(context.Background(), nil, nil, nil, nil)
+				require.Error(t, err)
+			},
+		},
+		{
+			name: "delete file success",
+			path: "/api/v1/files/550e8400-e29b-41d4-a716-446655440000",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			},
+			testFunc: func(_ *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				err := c.DeleteFile(context.Background(), openapi_types.UUID([16]byte{}))
+				assert.NoError(t, err)
+			},
+		},
+		{
+			name: "delete file not found",
+			path: "/api/v1/files/nonexistent",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				_, err := w.Write([]byte(`{"message":"file not found"}`))
+				assert.NoError(t, err)
+			},
+			testFunc: func(t *testing.T, c *Client) {
+				c.SetAuthToken("test-token")
+				err := c.DeleteFile(context.Background(), openapi_types.UUID([16]byte{}))
+				require.Error(t, err)
+			},
+		},
 	}
 
 	for _, tc := range testCases {

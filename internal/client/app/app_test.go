@@ -160,4 +160,30 @@ func TestApp(t *testing.T) {
 			assert.Equal(t, expectedValue, got, "log level %s should map to correct value", level)
 		}
 	})
+
+	t.Run("Get_ReturnsNil_WhenNotInitialized", func(t *testing.T) {
+		testMu.Lock()
+		defer testMu.Unlock()
+		Reset()
+
+		app := Get()
+		assert.Nil(t, app)
+	})
+
+	t.Run("Get_ReturnsInstance_AfterInit", func(t *testing.T) {
+		testMu.Lock()
+		defer testMu.Unlock()
+		Reset()
+
+		configFile, _, _ := setupTestEnv(t)
+		restore := overrideConfigPaths(configFile, filepath.Dir(configFile))
+		defer restore()
+
+		_, err := EnsureInitialized("")
+		require.NoError(t, err)
+
+		app := Get()
+		require.NotNil(t, app)
+		assert.Same(t, app, instance)
+	})
 }

@@ -557,3 +557,76 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalPayload(t *testing.T) {
+	testCases := []struct {
+		name      string
+		payload   []byte
+		dataType  model.DataType
+		wantType  interface{}
+		expectErr bool
+	}{
+		{
+			name:     "login password payload",
+			payload:  []byte(`{"login":"testuser","password":"testpass"}`),
+			dataType: model.DataTypeLoginPassword,
+			wantType: model.LoginPasswordPayload{},
+		},
+		{
+			name:     "bank card payload",
+			payload:  []byte(`{"cardNumber":"1234567890123456","cardHolder":"John Doe","cardExpiry":"12/25"}`),
+			dataType: model.DataTypeBankCard,
+			wantType: model.BankCardPayload{},
+		},
+		{
+			name:     "text payload",
+			payload:  []byte(`{"text":"secret text"}`),
+			dataType: model.DataTypeText,
+			wantType: model.TextPayload{},
+		},
+		{
+			name:     "file payload",
+			payload:  []byte(`{"fileIds":["550e8400-e29b-41d4-a716-446655440000"]}`),
+			dataType: model.DataTypeFile,
+			wantType: model.FilePayload{},
+		},
+		{
+			name:      "invalid login password payload",
+			payload:   []byte(`invalid json`),
+			dataType:  model.DataTypeLoginPassword,
+			expectErr: true,
+		},
+		{
+			name:      "invalid bank card payload",
+			payload:   []byte(`invalid json`),
+			dataType:  model.DataTypeBankCard,
+			expectErr: true,
+		},
+		{
+			name:      "invalid text payload",
+			payload:   []byte(`invalid json`),
+			dataType:  model.DataTypeText,
+			expectErr: true,
+		},
+		{
+			name:      "invalid file payload",
+			payload:   []byte(`invalid json`),
+			dataType:  model.DataTypeFile,
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := UnmarshalPayload(tc.payload, tc.dataType)
+
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.IsType(t, tc.wantType, result)
+		})
+	}
+}
