@@ -131,6 +131,7 @@ Available Commands:
   file        File management commands
   help        Help about any command
   init        Initialize client configuration and storage
+  sync        Synchronize local data with server
   tui         Start TUI interface
   version     Print version information
 
@@ -216,6 +217,20 @@ Use "gk [command] --help" for more information about a command.
 # Удаление файла
 ./bin/gophkeeper-client file delete --id <uuid>
 ```
+
+### Синхронизация
+
+```bash
+# Явная синхронизация
+./bin/gophkeeper-client sync
+```
+
+Клиент поддерживает офлайн-режим с автоматической синхронизацией:
+- **Фоновая синхронизация** — каждые 30 секунд (при наличии интернета)
+- **Явная синхронизация** — команда `gk sync`
+- **Первый запуск** — автоматическая загрузка всех данных с сервера
+- **Офлайн-режим** — создание/изменение/удаление записей в локальном хранилище
+- **Разрешение конфликтов** — версия с сервера имеет приоритет
 
 ### TUI режим
 

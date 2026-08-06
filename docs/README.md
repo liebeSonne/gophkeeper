@@ -7,7 +7,8 @@ graph TB
     subgraph Client["Client (CLI / TUI)"]
         CLI["CLI Commands"]
         TUI["TUI Interface"]
-        STORAGE["SQLite Token Storage"]
+        STORAGE["SQLite Store"]
+        SYNC["Sync Service"]
     end
 
     subgraph Server["Server (Go + Chi)"]
@@ -25,9 +26,11 @@ graph TB
     end
 
     CLI --> API
-    TUI --> API
     CLI --> STORAGE
+    TUI --> API
     TUI --> STORAGE
+    SYNC --> API
+    SYNC --> STORAGE
 
     API --> AUTH
     AUTH --> DATA_SVC
@@ -370,6 +373,90 @@ sequenceDiagram
 
 > **Примечание:** Поле `metadata` хранится в открытом виде и используется для поиска. Все остальные поля (`login`, `password`, `card_number`, `text`, `file_ids`) шифруются AES-256-GCM и хранятся в `payload (BYTEA)`.
 
+## Офлайн-режим и синхронизация
+
+Клиент работает в режиме **offline-first** — все данные хранятся в локальном SQLite, синхронизация с сервером происходит в фоне.
+
+### Стратегия синхронизации
+
+| Режим | Описание |
+|-------|----------|
+| **Фоновая** | Горутина запускает синхронизацию каждые 30 секунд |
+| **Явная** | Команда `gk sync` выполняет немедленную синхронизацию |
+| **Первый запуск** | При пустом локальном хранилище автоматически загружаются все данные с сервера |
+
+### Статусы синхронизации
+
+| Статус | Описание |
+|--------|----------|
+| `synced` | Запись синхронизирована с сервером |
+| `pending` | Запись создана/изменена локально, ожидает отправки на сервер |
+| `deleting` | Запись помечена на удаление, ожидает подтверждения от сервера |
+| `conflict` | Обнаружен конфликт (решается в пользу сервера) |
+
+### Push (отправка на сервер)
+
+```mermaid
+sequenceDiagram
+    participant Sync as Sync Service
+    participant L as Local SQLite
+    participant S as Server
+
+    Note over Sync,S: Push pending entries
+    Sync->>L: DataGetPending()
+    L-->>Sync: entries (status=pending/deleting)
+    loop Each entry
+        alt status = pending (create/update)
+            Sync->>S: POST/PUT /api/v1/data
+            S-->>Sync: 201/200 {id, ...}
+            Sync->>L: DataUpdateSyncStatus(synced, remoteID)
+        else status = deleting
+            Sync->>S: DELETE /api/v1/data/{remoteID}
+            S-->>Sync: 204 No Content
+            Sync->>L: DataDelete(localID)
+        end
+    end
+```
+
+### Pull (загрузка с сервера)
+
+```mermaid
+sequenceDiagram
+    participant Sync as Sync Service
+    participant L as Local SQLite
+    participant S as Server
+
+    Note over Sync,S: Pull (first launch / empty store)
+    Sync->>L: DataCount()
+    L-->>Sync: count = 0
+    Sync->>S: GET /api/v1/data/list?page=1
+    S-->>Sync: {items, total_pages}
+    loop Each page
+        Sync->>S: GET /api/v1/data/list?page=N
+        S-->>Sync: {items, ...}
+        loop Each item
+            Sync->>L: DataPut(entry, remoteID)
+        end
+    end
+```
+
+### Разрешение конфликтов
+
+При конфликте между локальной и серверной версией:
+1. Серверная версия имеет приоритет (**server wins**)
+2. Локальная запись заменяется на версию с сервера
+3. Статус устанавливается в `synced`
+4. Ошибка сохраняется в `error_message` для отладки
+
+### Работа в офлайн-режиме
+
+При отсутствии интернета:
+- **Создание** — запись сохраняется в локальное хранилище со статусом `pending`
+- **Изменение** — запись обновляется локально, статус меняется на `pending`
+- **Удаление** — статус меняется на `deleting` (физическое удаление после подтверждения от сервера)
+- **Чтение** — данные читаются из локального хранилища
+- При восстановлении соединения изменения автоматически синхронизируются
+
 ## Сценарии использования
 
 ### Новый пользователь
@@ -387,9 +474,11 @@ sequenceDiagram
 2. Инициализация клиента: `gk init --server-address http://server:8080`
 3. Вход: `gk auth login --login user --password pass`
 4. Токены сохраняются в SQLite на диске клиента
-5. Запрос данных: `gk data list` / `gk data get --id <uuid>`
-6. Данные расшифровываются сервером и передаются клиенту по HTTPS
-7. При истечении access token клиент автоматически делает refresh
+5. При первом запуске автоматически загружаются все данные с сервера
+6. Данные хранятся в локальном SQLite (offline-first)
+7. Фоновая синхронизация каждые 30 секунд поддерживает актуальность данных
+8. Явная синхронизация: `gk sync`
+9. При истечении access token клиент автоматически делает refresh
 
 ### Параллельные клиенты одного пользователя
 
