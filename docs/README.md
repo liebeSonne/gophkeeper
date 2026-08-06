@@ -472,7 +472,7 @@ sequenceDiagram
 
 1. Пользователь получает клиент под свою платформу
 2. Инициализация клиента: `gk init --server-address http://server:8080`
-3. Вход: `gk auth login --login user --password pass`
+3. Вход: `gk auth login`
 4. Токены сохраняются в SQLite на диске клиента
 5. При первом запуске автоматически загружаются все данные с сервера
 6. Данные хранятся в локальном SQLite (offline-first)

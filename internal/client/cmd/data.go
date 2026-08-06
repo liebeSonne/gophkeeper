@@ -398,9 +398,3 @@ func outputDataGet(entry *model.DataEntry, jsonOutput bool) error {
 
 	return nil
 }
-
-func init() { //nolint:gochecknoinits
-	rootCmd.AddCommand(dataCmd)
-	dataCmd.AddCommand(dataListCmd, dataGetCmd, dataCreateCmd, dataUpdateCmd, dataDeleteCmd)
-	initDataFlags()
-}

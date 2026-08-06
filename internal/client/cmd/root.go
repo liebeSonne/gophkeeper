@@ -42,12 +42,6 @@ func Setup() {
 	initCmd.Flags().StringVar(&initServerAddress, "server-address", "", "server address (e.g. http://localhost:8080)")
 	initCmd.Flags().StringVar(&initStoragePath, "storage-path", "", "path to SQLite storage file")
 
-	loginCmd.Flags().String("login", "", "username")
-	loginCmd.Flags().String("password", "", "password")
-
-	registerCmd.Flags().String("login", "", "username")
-	registerCmd.Flags().String("password", "", "password")
-
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(registerCmd)
 	authCmd.AddCommand(logoutCmd)

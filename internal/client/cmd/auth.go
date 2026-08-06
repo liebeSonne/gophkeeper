@@ -150,19 +150,8 @@ var refreshCmd = &cobra.Command{
 	},
 }
 
-func getCredentials(cmd *cobra.Command) (login, password string, err error) {
-	login, _ = cmd.Flags().GetString("login")
-	password, _ = cmd.Flags().GetString("password")
-
-	if login != "" && password != "" {
-		return login, password, nil
-	}
-
-	if login == "" && password == "" {
-		return clientui.PromptCredentials()
-	}
-
-	return "", "", fmt.Errorf("both --login and --password must be provided together")
+func getCredentials(_ *cobra.Command) (login, password string, err error) {
+	return clientui.PromptCredentials()
 }
 
 func convertTokenResponse(resp *gophkeeper.TokenResponse) model.Token {

@@ -26,8 +26,8 @@ make docker-server-run
 ```bash
 make build-client
 ./bin/gophkeeper-client init --server-address http://localhost:8080
-./bin/gophkeeper-client auth register --login user --password pass
-./bin/gophkeeper-client auth login --login user --password pass
+./bin/gophkeeper-client auth register
+./bin/gophkeeper-client auth login
 ```
 
 ## Сервер
@@ -156,13 +156,13 @@ Use "gk [command] --help" for more information about a command.
 
 ```bash
 # Регистрация (флаги)
-./bin/gophkeeper-client auth register --login user --password pass
+./bin/gophkeeper-client auth register
 
 # Регистрация (интерактивный режим, bubbletea)
 ./bin/gophkeeper-client auth register
 
 # Вход (флаги)
-./bin/gophkeeper-client auth login --login user --password pass
+./bin/gophkeeper-client auth login
 
 # Вход (интерактивный режим, bubbletea)
 ./bin/gophkeeper-client auth login
