@@ -532,12 +532,11 @@ func TestFileService_ListFiles(t *testing.T) {
 		{
 			name: "successful list",
 			setupMocks: func(repo *MockFileRepository) {
-				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(3, nil)
-				repo.On("ListByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{
+				repo.On("ListWithCountByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{
 					makeTestFile(testUser, uuid.New()),
 					makeTestFile(testUser, uuid.New()),
 					makeTestFile(testUser, uuid.New()),
-				}, nil)
+				}, 3, nil)
 			},
 			page:        1,
 			pageSize:    20,
@@ -547,8 +546,7 @@ func TestFileService_ListFiles(t *testing.T) {
 		{
 			name: "empty list",
 			setupMocks: func(repo *MockFileRepository) {
-				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(0, nil)
-				repo.On("ListByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{}, nil)
+				repo.On("ListWithCountByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{}, 0, nil)
 			},
 			page:        1,
 			pageSize:    20,
@@ -558,10 +556,9 @@ func TestFileService_ListFiles(t *testing.T) {
 		{
 			name: "with query",
 			setupMocks: func(repo *MockFileRepository) {
-				repo.On("CountByUserID", mock.Anything, testUser, mock.AnythingOfType("*string")).Return(1, nil)
-				repo.On("ListByUserID", mock.Anything, testUser, mock.AnythingOfType("*string"), mock.Anything, mock.Anything).Return([]model.File{
+				repo.On("ListWithCountByUserID", mock.Anything, testUser, mock.AnythingOfType("*string"), mock.Anything, mock.Anything).Return([]model.File{
 					makeTestFile(testUser, uuid.New()),
-				}, nil)
+				}, 1, nil)
 			},
 			page:        1,
 			pageSize:    20,
@@ -570,9 +567,9 @@ func TestFileService_ListFiles(t *testing.T) {
 			expectTotal: 1,
 		},
 		{
-			name: "count fails",
+			name: "list with count fails",
 			setupMocks: func(repo *MockFileRepository) {
-				repo.On("CountByUserID", mock.Anything, testUser, (*string)(nil)).Return(0, errors.New("db error"))
+				repo.On("ListWithCountByUserID", mock.Anything, testUser, (*string)(nil), mock.Anything, mock.Anything).Return([]model.File{}, 0, errors.New("db error"))
 			},
 			page:        1,
 			pageSize:    20,

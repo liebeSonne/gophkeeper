@@ -120,14 +120,9 @@ func (s *DataService) ListData(
 		Offset:    &offset,
 	}
 
-	total, err := s.repo.Count(ctx, spec)
+	items, total, err := s.repo.ListWithCount(ctx, spec)
 	if err != nil {
-		return nil, 0, fmt.Errorf("count data: %w", err)
-	}
-
-	items, err := s.repo.List(ctx, spec)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list data: %w", err)
+		return nil, 0, fmt.Errorf("list data with count: %w", err)
 	}
 
 	for i := range items {

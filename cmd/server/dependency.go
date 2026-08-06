@@ -34,8 +34,8 @@ func newDependencyContainer(
 
 	userRepo := db.NewUserRepo(pool)
 	tokenRepo := db.NewTokenRepo(pool)
-	dataRepo := db.NewDataRepo(pool)
-	fileRepo := db.NewFileRepo(pool)
+	dataRepo := db.NewDataRepo(pool, logger)
+	fileRepo := db.NewFileRepo(pool, logger)
 
 	jwtService := jwt.NewJWT(cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)

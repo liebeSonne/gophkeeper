@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,16 +11,24 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 type DataRepo struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger intlogger.Logger
 }
 
-func NewDataRepo(pool *pgxpool.Pool) *DataRepo {
-	return &DataRepo{pool: pool}
+func NewDataRepo(
+	pool *pgxpool.Pool,
+	logger intlogger.Logger,
+) *DataRepo {
+	return &DataRepo{
+		pool:   pool,
+		logger: logger,
+	}
 }
 
 type ListSpec struct {
@@ -80,10 +89,54 @@ func (r *DataRepo) Delete(ctx context.Context, ids []uuid.UUID) error {
 	return nil
 }
 
-func (r *DataRepo) List(ctx context.Context, spec ListSpec) ([]model.Data, error) {
+func (r *DataRepo) ListWithCount(ctx context.Context, spec ListSpec) ([]model.Data, int, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("begin tx for list with count: %w", err)
+	}
+
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errRollback != nil && !errors.Is(errRollback, pgx.ErrTxClosed) && !errors.Is(errRollback, sql.ErrTxDone) {
+			r.logger.Error("error on rollback transaction", "err", errRollback)
+		}
+	}()
+
+	count, err := r.countInTx(ctx, tx, spec)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	items, err := r.listInTx(ctx, tx, spec)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("commit tx for list with count: %w", err)
+	}
+
+	return items, count, nil
+}
+
+func (r *DataRepo) countInTx(ctx context.Context, tx pgx.Tx, spec ListSpec) (int, error) {
+	const query = `SELECT count(*) FROM data WHERE %s`
+
+	conditions, args := r.prepareSpecConditions(spec)
+
+	var count int
+	err := tx.QueryRow(ctx, fmt.Sprintf(query, strings.Join(conditions, " AND ")), args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count data: %w", err)
+	}
+	return count, nil
+}
+
+func (r *DataRepo) listInTx(ctx context.Context, tx pgx.Tx, spec ListSpec) ([]model.Data, error) {
 	baseQuery := `
-		SELECT id, user_id, type, payload, metadata, created_at, updated_at 
-		FROM data 
+		SELECT id, user_id, type, payload, metadata, created_at, updated_at
+		FROM data
 		WHERE %s
 		ORDER BY created_at DESC
 	`
@@ -98,7 +151,7 @@ func (r *DataRepo) List(ctx context.Context, spec ListSpec) ([]model.Data, error
 		query += fmt.Sprintf(" OFFSET %d", *spec.Offset)
 	}
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list data: %w", err)
 	}
@@ -118,19 +171,6 @@ func (r *DataRepo) List(ctx context.Context, spec ListSpec) ([]model.Data, error
 		return nil, fmt.Errorf("iterate data rows: %w", err)
 	}
 	return result, nil
-}
-
-func (r *DataRepo) Count(ctx context.Context, spec ListSpec) (int, error) {
-	const query = `SELECT count(*) FROM data WHERE %s`
-
-	conditions, args := r.prepareSpecConditions(spec)
-
-	var count int
-	err := r.pool.QueryRow(ctx, fmt.Sprintf(query, strings.Join(conditions, " AND ")), args...).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count data: %w", err)
-	}
-	return count, nil
 }
 
 func (r *DataRepo) prepareSpecConditions(spec ListSpec) (conditions []string, args []interface{}) {

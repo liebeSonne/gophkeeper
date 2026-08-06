@@ -207,12 +207,11 @@ func TestDataService_ListData(t *testing.T) {
 		{
 			name: "successful list single page",
 			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
-				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(3, nil)
-				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
+				repo.On("ListWithCount", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
 					*makeTestData(userID, uuid.New()),
 					*makeTestData(userID, uuid.New()),
 					*makeTestData(userID, uuid.New()),
-				}, nil)
+				}, 3, nil)
 				enc.On("Decrypt", mock.Anything).Return(payload, nil).Times(3)
 			},
 			page:        1,
@@ -223,11 +222,10 @@ func TestDataService_ListData(t *testing.T) {
 		{
 			name: "pagination page 2",
 			setupMocks: func(repo *MockDataRepository, enc *crypto.MockEncryptor) {
-				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(5, nil)
-				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
+				repo.On("ListWithCount", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{
 					*makeTestData(userID, uuid.New()),
 					*makeTestData(userID, uuid.New()),
-				}, nil)
+				}, 5, nil)
 				enc.On("Decrypt", mock.Anything).Return(payload, nil).Times(2)
 			},
 			page:        2,
@@ -238,8 +236,7 @@ func TestDataService_ListData(t *testing.T) {
 		{
 			name: "empty list",
 			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
-				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(0, nil)
-				repo.On("List", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{}, nil)
+				repo.On("ListWithCount", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{}, 0, nil)
 			},
 			page:        1,
 			pageSize:    20,
@@ -247,9 +244,9 @@ func TestDataService_ListData(t *testing.T) {
 			expectTotal: 0,
 		},
 		{
-			name: "count fails",
+			name: "list with count fails",
 			setupMocks: func(repo *MockDataRepository, _ *crypto.MockEncryptor) {
-				repo.On("Count", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return(0, errors.New("db error"))
+				repo.On("ListWithCount", mock.Anything, mock.AnythingOfType("db.ListSpec")).Return([]model.Data{}, 0, errors.New("db error"))
 			},
 			page:        1,
 			pageSize:    20,

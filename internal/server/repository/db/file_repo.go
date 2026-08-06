@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,16 +11,24 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
 
 type FileRepo struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger intlogger.Logger
 }
 
-func NewFileRepo(pool *pgxpool.Pool) *FileRepo {
-	return &FileRepo{pool: pool}
+func NewFileRepo(
+	pool *pgxpool.Pool,
+	logger intlogger.Logger,
+) *FileRepo {
+	return &FileRepo{
+		pool:   pool,
+		logger: logger,
+	}
 }
 
 func (r *FileRepo) NextID(_ context.Context) uuid.UUID {
@@ -157,10 +166,53 @@ func (r *FileRepo) GetExistingFilesByUserID(ctx context.Context, userID uuid.UUI
 	return result, nil
 }
 
-func (r *FileRepo) ListByUserID(ctx context.Context, userID uuid.UUID, query *string, limit, offset *int) ([]model.File, error) {
+func (r *FileRepo) ListWithCountByUserID(ctx context.Context, userID uuid.UUID, query *string, limit, offset *int) ([]model.File, int, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("begin tx for list with count: %w", err)
+	}
+
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errRollback != nil && !errors.Is(errRollback, pgx.ErrTxClosed) && !errors.Is(errRollback, sql.ErrTxDone) {
+			r.logger.Error("error on rollback transaction", "err", errRollback)
+		}
+	}()
+
+	count, err := r.countByUserIDInTx(ctx, tx, userID, query)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	files, err := r.listByUserIDInTx(ctx, tx, userID, query, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, 0, fmt.Errorf("commit tx for list files with count: %w", err)
+	}
+
+	return files, count, nil
+}
+
+func (r *FileRepo) countByUserIDInTx(ctx context.Context, tx pgx.Tx, userID uuid.UUID, query *string) (int, error) {
+	sqlQuery := `SELECT count(*) FROM file WHERE %s`
+
+	conditions, args := r.prepareConditions(userID, query)
+
+	var count int
+	err := tx.QueryRow(ctx, fmt.Sprintf(sqlQuery, strings.Join(conditions, " AND ")), args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count files by user id: %w", err)
+	}
+	return count, nil
+}
+
+func (r *FileRepo) listByUserIDInTx(ctx context.Context, tx pgx.Tx, userID uuid.UUID, query *string, limit, offset *int) ([]model.File, error) {
 	baseQuery := `
-		SELECT id, user_id, name, mime_type, size, chunks_count, status, created_at, updated_at 
-		FROM file 
+		SELECT id, user_id, name, mime_type, size, chunks_count, status, created_at, updated_at
+		FROM file
 		WHERE %s
 		ORDER BY created_at DESC
 	`
@@ -175,7 +227,7 @@ func (r *FileRepo) ListByUserID(ctx context.Context, userID uuid.UUID, query *st
 		sqlQuery += fmt.Sprintf(" OFFSET %d", *offset)
 	}
 
-	rows, err := r.pool.Query(ctx, sqlQuery, args...)
+	rows, err := tx.Query(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list files by user id: %w", err)
 	}
@@ -195,19 +247,6 @@ func (r *FileRepo) ListByUserID(ctx context.Context, userID uuid.UUID, query *st
 		return nil, fmt.Errorf("iterate files: %w", err)
 	}
 	return files, nil
-}
-
-func (r *FileRepo) CountByUserID(ctx context.Context, userID uuid.UUID, query *string) (int, error) {
-	sqlQuery := `SELECT count(*) FROM file WHERE %s`
-
-	conditions, args := r.prepareConditions(userID, query)
-
-	var count int
-	err := r.pool.QueryRow(ctx, fmt.Sprintf(sqlQuery, strings.Join(conditions, " AND ")), args...).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count files by user id: %w", err)
-	}
-	return count, nil
 }
 
 func (r *FileRepo) prepareConditions(userID uuid.UUID, query *string) (conditions []string, args []interface{}) {

@@ -337,14 +337,9 @@ func (s *FileService) ListFiles(
 	limit := pageSize
 	offset := (page - 1) * pageSize
 
-	total, err := s.fileRepo.CountByUserID(ctx, userID, query)
+	files, total, err := s.fileRepo.ListWithCountByUserID(ctx, userID, query, &limit, &offset)
 	if err != nil {
-		return nil, 0, fmt.Errorf("count files: %w", err)
-	}
-
-	files, err := s.fileRepo.ListByUserID(ctx, userID, query, &limit, &offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list files: %w", err)
+		return nil, 0, fmt.Errorf("list files with count: %w", err)
 	}
 
 	return files, total, nil

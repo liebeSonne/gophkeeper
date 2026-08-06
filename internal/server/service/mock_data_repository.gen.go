@@ -40,72 +40,6 @@ func (_m *MockDataRepository) EXPECT() *MockDataRepository_Expecter {
 	return &MockDataRepository_Expecter{mock: &_m.Mock}
 }
 
-// Count provides a mock function for the type MockDataRepository
-func (_mock *MockDataRepository) Count(ctx context.Context, spec db.ListSpec) (int, error) {
-	ret := _mock.Called(ctx, spec)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Count")
-	}
-
-	var r0 int
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, db.ListSpec) (int, error)); ok {
-		return returnFunc(ctx, spec)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, db.ListSpec) int); ok {
-		r0 = returnFunc(ctx, spec)
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, db.ListSpec) error); ok {
-		r1 = returnFunc(ctx, spec)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockDataRepository_Count_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Count'
-type MockDataRepository_Count_Call struct {
-	*mock.Call
-}
-
-// Count is a helper method to define mock.On call
-//   - ctx context.Context
-//   - spec db.ListSpec
-func (_e *MockDataRepository_Expecter) Count(ctx interface{}, spec interface{}) *MockDataRepository_Count_Call {
-	return &MockDataRepository_Count_Call{Call: _e.mock.On("Count", ctx, spec)}
-}
-
-func (_c *MockDataRepository_Count_Call) Run(run func(ctx context.Context, spec db.ListSpec)) *MockDataRepository_Count_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 db.ListSpec
-		if args[1] != nil {
-			arg1 = args[1].(db.ListSpec)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockDataRepository_Count_Call) Return(n int, err error) *MockDataRepository_Count_Call {
-	_c.Call.Return(n, err)
-	return _c
-}
-
-func (_c *MockDataRepository_Count_Call) RunAndReturn(run func(ctx context.Context, spec db.ListSpec) (int, error)) *MockDataRepository_Count_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Delete provides a mock function for the type MockDataRepository
 func (_mock *MockDataRepository) Delete(ctx context.Context, ids []uuid.UUID) error {
 	ret := _mock.Called(ctx, ids)
@@ -229,17 +163,18 @@ func (_c *MockDataRepository_GetByID_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
-// List provides a mock function for the type MockDataRepository
-func (_mock *MockDataRepository) List(ctx context.Context, spec db.ListSpec) ([]model.Data, error) {
+// ListWithCount provides a mock function for the type MockDataRepository
+func (_mock *MockDataRepository) ListWithCount(ctx context.Context, spec db.ListSpec) ([]model.Data, int, error) {
 	ret := _mock.Called(ctx, spec)
 
 	if len(ret) == 0 {
-		panic("no return value specified for List")
+		panic("no return value specified for ListWithCount")
 	}
 
 	var r0 []model.Data
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, db.ListSpec) ([]model.Data, error)); ok {
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, db.ListSpec) ([]model.Data, int, error)); ok {
 		return returnFunc(ctx, spec)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, db.ListSpec) []model.Data); ok {
@@ -249,27 +184,32 @@ func (_mock *MockDataRepository) List(ctx context.Context, spec db.ListSpec) ([]
 			r0 = ret.Get(0).([]model.Data)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, db.ListSpec) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, db.ListSpec) int); ok {
 		r1 = returnFunc(ctx, spec)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, db.ListSpec) error); ok {
+		r2 = returnFunc(ctx, spec)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
-// MockDataRepository_List_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'List'
-type MockDataRepository_List_Call struct {
+// MockDataRepository_ListWithCount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWithCount'
+type MockDataRepository_ListWithCount_Call struct {
 	*mock.Call
 }
 
-// List is a helper method to define mock.On call
+// ListWithCount is a helper method to define mock.On call
 //   - ctx context.Context
 //   - spec db.ListSpec
-func (_e *MockDataRepository_Expecter) List(ctx interface{}, spec interface{}) *MockDataRepository_List_Call {
-	return &MockDataRepository_List_Call{Call: _e.mock.On("List", ctx, spec)}
+func (_e *MockDataRepository_Expecter) ListWithCount(ctx interface{}, spec interface{}) *MockDataRepository_ListWithCount_Call {
+	return &MockDataRepository_ListWithCount_Call{Call: _e.mock.On("ListWithCount", ctx, spec)}
 }
 
-func (_c *MockDataRepository_List_Call) Run(run func(ctx context.Context, spec db.ListSpec)) *MockDataRepository_List_Call {
+func (_c *MockDataRepository_ListWithCount_Call) Run(run func(ctx context.Context, spec db.ListSpec)) *MockDataRepository_ListWithCount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -287,12 +227,12 @@ func (_c *MockDataRepository_List_Call) Run(run func(ctx context.Context, spec d
 	return _c
 }
 
-func (_c *MockDataRepository_List_Call) Return(datas []model.Data, err error) *MockDataRepository_List_Call {
-	_c.Call.Return(datas, err)
+func (_c *MockDataRepository_ListWithCount_Call) Return(datas []model.Data, n int, err error) *MockDataRepository_ListWithCount_Call {
+	_c.Call.Return(datas, n, err)
 	return _c
 }
 
-func (_c *MockDataRepository_List_Call) RunAndReturn(run func(ctx context.Context, spec db.ListSpec) ([]model.Data, error)) *MockDataRepository_List_Call {
+func (_c *MockDataRepository_ListWithCount_Call) RunAndReturn(run func(ctx context.Context, spec db.ListSpec) ([]model.Data, int, error)) *MockDataRepository_ListWithCount_Call {
 	_c.Call.Return(run)
 	return _c
 }

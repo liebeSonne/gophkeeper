@@ -39,78 +39,6 @@ func (_m *MockFileRepository) EXPECT() *MockFileRepository_Expecter {
 	return &MockFileRepository_Expecter{mock: &_m.Mock}
 }
 
-// CountByUserID provides a mock function for the type MockFileRepository
-func (_mock *MockFileRepository) CountByUserID(ctx context.Context, userID uuid.UUID, query *string) (int, error) {
-	ret := _mock.Called(ctx, userID, query)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CountByUserID")
-	}
-
-	var r0 int
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string) (int, error)); ok {
-		return returnFunc(ctx, userID, query)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string) int); ok {
-		r0 = returnFunc(ctx, userID, query)
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string) error); ok {
-		r1 = returnFunc(ctx, userID, query)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockFileRepository_CountByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountByUserID'
-type MockFileRepository_CountByUserID_Call struct {
-	*mock.Call
-}
-
-// CountByUserID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID uuid.UUID
-//   - query *string
-func (_e *MockFileRepository_Expecter) CountByUserID(ctx interface{}, userID interface{}, query interface{}) *MockFileRepository_CountByUserID_Call {
-	return &MockFileRepository_CountByUserID_Call{Call: _e.mock.On("CountByUserID", ctx, userID, query)}
-}
-
-func (_c *MockFileRepository_CountByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID, query *string)) *MockFileRepository_CountByUserID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 uuid.UUID
-		if args[1] != nil {
-			arg1 = args[1].(uuid.UUID)
-		}
-		var arg2 *string
-		if args[2] != nil {
-			arg2 = args[2].(*string)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockFileRepository_CountByUserID_Call) Return(n int, err error) *MockFileRepository_CountByUserID_Call {
-	_c.Call.Return(n, err)
-	return _c
-}
-
-func (_c *MockFileRepository_CountByUserID_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, query *string) (int, error)) *MockFileRepository_CountByUserID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // DeleteFile provides a mock function for the type MockFileRepository
 func (_mock *MockFileRepository) DeleteFile(ctx context.Context, id uuid.UUID) error {
 	ret := _mock.Called(ctx, id)
@@ -300,17 +228,18 @@ func (_c *MockFileRepository_GetUploadedChunksCount_Call) RunAndReturn(run func(
 	return _c
 }
 
-// ListByUserID provides a mock function for the type MockFileRepository
-func (_mock *MockFileRepository) ListByUserID(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int) ([]model.File, error) {
+// ListWithCountByUserID provides a mock function for the type MockFileRepository
+func (_mock *MockFileRepository) ListWithCountByUserID(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int) ([]model.File, int, error) {
 	ret := _mock.Called(ctx, userID, query, limit, offset)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ListByUserID")
+		panic("no return value specified for ListWithCountByUserID")
 	}
 
 	var r0 []model.File
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, *int, *int) ([]model.File, error)); ok {
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, *int, *int) ([]model.File, int, error)); ok {
 		return returnFunc(ctx, userID, query, limit, offset)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, *string, *int, *int) []model.File); ok {
@@ -320,30 +249,35 @@ func (_mock *MockFileRepository) ListByUserID(ctx context.Context, userID uuid.U
 			r0 = ret.Get(0).([]model.File)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string, *int, *int) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID, *string, *int, *int) int); ok {
 		r1 = returnFunc(ctx, userID, query, limit, offset)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID, *string, *int, *int) error); ok {
+		r2 = returnFunc(ctx, userID, query, limit, offset)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
-// MockFileRepository_ListByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListByUserID'
-type MockFileRepository_ListByUserID_Call struct {
+// MockFileRepository_ListWithCountByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWithCountByUserID'
+type MockFileRepository_ListWithCountByUserID_Call struct {
 	*mock.Call
 }
 
-// ListByUserID is a helper method to define mock.On call
+// ListWithCountByUserID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uuid.UUID
 //   - query *string
 //   - limit *int
 //   - offset *int
-func (_e *MockFileRepository_Expecter) ListByUserID(ctx interface{}, userID interface{}, query interface{}, limit interface{}, offset interface{}) *MockFileRepository_ListByUserID_Call {
-	return &MockFileRepository_ListByUserID_Call{Call: _e.mock.On("ListByUserID", ctx, userID, query, limit, offset)}
+func (_e *MockFileRepository_Expecter) ListWithCountByUserID(ctx interface{}, userID interface{}, query interface{}, limit interface{}, offset interface{}) *MockFileRepository_ListWithCountByUserID_Call {
+	return &MockFileRepository_ListWithCountByUserID_Call{Call: _e.mock.On("ListWithCountByUserID", ctx, userID, query, limit, offset)}
 }
 
-func (_c *MockFileRepository_ListByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int)) *MockFileRepository_ListByUserID_Call {
+func (_c *MockFileRepository_ListWithCountByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int)) *MockFileRepository_ListWithCountByUserID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -376,12 +310,12 @@ func (_c *MockFileRepository_ListByUserID_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockFileRepository_ListByUserID_Call) Return(files []model.File, err error) *MockFileRepository_ListByUserID_Call {
-	_c.Call.Return(files, err)
+func (_c *MockFileRepository_ListWithCountByUserID_Call) Return(files []model.File, n int, err error) *MockFileRepository_ListWithCountByUserID_Call {
+	_c.Call.Return(files, n, err)
 	return _c
 }
 
-func (_c *MockFileRepository_ListByUserID_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int) ([]model.File, error)) *MockFileRepository_ListByUserID_Call {
+func (_c *MockFileRepository_ListWithCountByUserID_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID, query *string, limit *int, offset *int) ([]model.File, int, error)) *MockFileRepository_ListWithCountByUserID_Call {
 	_c.Call.Return(run)
 	return _c
 }
