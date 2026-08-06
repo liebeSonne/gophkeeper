@@ -1,1 +1,2 @@
 DROP TABLE IF EXISTS data;
+DROP TYPE IF EXISTS data_type;

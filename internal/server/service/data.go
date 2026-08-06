@@ -298,6 +298,6 @@ func UnmarshalPayload(payload []byte, dataType model.DataType) (interface{}, err
 		}
 		return p, nil
 	default:
-		return nil, fmt.Errorf("unknown data type: %d", dataType)
+		return nil, fmt.Errorf("unknown data type: %s", dataType)
 	}
 }

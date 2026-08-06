@@ -180,8 +180,8 @@ func TestFileHandlers(t *testing.T) {
 			setupMock: func(m *MockFileService) {
 				m.On("ListFiles", mock.Anything, userID, 1, 20, (*string)(nil)).
 					Return([]model.File{
-						{ID: uuid.New(), Name: "test.txt", Size: 1024},
-						{ID: uuid.New(), Name: "test2.txt", Size: 2048},
+						{ID: uuid.New(), Name: "test.txt", Size: 1024, Status: model.FileStatusCompleted},
+						{ID: uuid.New(), Name: "test2.txt", Size: 2048, Status: model.FileStatusCompleted},
 					}, 2, nil)
 			},
 			expectedStatus: http.StatusOK,

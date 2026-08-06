@@ -147,7 +147,7 @@ func TestConvertDataToDataInfo(t *testing.T) {
 			data: model.Data{
 				ID:        dataID,
 				UserID:    uuid.New(),
-				Type:      model.DataType(99),
+				Type:      "UNKNOWN",
 				Payload:   []byte(`{}`),
 				Metadata:  "test metadata",
 				CreatedAt: now,
@@ -194,7 +194,7 @@ func TestConvertFileStatusToAPI(t *testing.T) {
 		},
 		{
 			name:      "unknown",
-			status:    model.FileStatus(99),
+			status:    "UNKNOWN",
 			wantError: true,
 		},
 	}

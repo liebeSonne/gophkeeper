@@ -1,8 +1,10 @@
+CREATE TYPE data_type AS ENUM ('LOGIN_PASSWORD', 'BANK_CARD', 'TEXT', 'FILE');
+
 CREATE TABLE IF NOT EXISTS data
 (
     id         UUID NOT  NULL PRIMARY KEY,
     user_id    UUID NOT  NULL,
-    type       SMALLINT  NOT NULL,
+    type       data_type NOT NULL,
     payload    BYTEA     NOT NULL,
     metadata   TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

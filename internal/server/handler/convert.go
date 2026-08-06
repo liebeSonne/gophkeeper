@@ -33,7 +33,7 @@ func convertDataTypeFromAPI(dt server.DataType) (model.DataType, error) {
 	case server.DataTypeFILE:
 		return model.DataTypeFile, nil
 	default:
-		return 0, fmt.Errorf("unknown data type: %s", dt)
+		return "", fmt.Errorf("unknown data type: %s", dt)
 	}
 }
 
@@ -140,7 +140,7 @@ func convertDataToDataInfo(data model.Data) (*server.DataInfo, error) {
 			return nil, fmt.Errorf("error on create data info: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("unknown data type: %d", data.Type)
+		return nil, fmt.Errorf("unknown data type: %s", data.Type)
 	}
 
 	return info, nil
@@ -205,12 +205,12 @@ func convertDataMetadataFromAPIData(data *server.Data) string {
 func convertDataTypeFromAPIData(data *server.Data) (model.DataType, error) {
 	discriminator, err := data.Discriminator()
 	if err != nil {
-		return 0, fmt.Errorf("invalid data type: %w", err)
+		return "", fmt.Errorf("invalid data type: %w", err)
 	}
 	dataType, err := convertDataTypeFromAPI(server.DataType(discriminator))
 
 	if err != nil {
-		return 0, fmt.Errorf("invalid data type %s: %w", discriminator, err)
+		return "", fmt.Errorf("invalid data type %s: %w", discriminator, err)
 	}
 	return dataType, nil
 }

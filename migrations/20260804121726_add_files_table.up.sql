@@ -1,3 +1,5 @@
+CREATE TYPE file_status AS ENUM ('IN_PROGRESS', 'COMPLETED', 'FAILED');
+
 CREATE TABLE file (
     id           UUID          NOT NULL PRIMARY KEY,
     user_id      UUID          NOT NULL,
@@ -5,7 +7,7 @@ CREATE TABLE file (
     mime_type    VARCHAR(256)  NOT NULL,
     size         BIGINT        NOT NULL,
     chunks_count INT           NOT NULL,
-    status       INT           NOT NULL DEFAULT 0,
+    status       file_status   NOT NULL DEFAULT 'IN_PROGRESS',
     created_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT   fk_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE

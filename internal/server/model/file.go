@@ -6,26 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type FileStatus int
+type FileStatus string
 
 const (
-	FileStatusInProgress FileStatus = iota
-	FileStatusCompleted
-	FileStatusFailed
+	FileStatusInProgress FileStatus = "IN_PROGRESS"
+	FileStatusCompleted  FileStatus = "COMPLETED"
+	FileStatusFailed     FileStatus = "FAILED"
 )
-
-func (s FileStatus) String() string {
-	switch s {
-	case FileStatusInProgress:
-		return "IN_PROGRESS"
-	case FileStatusCompleted:
-		return "COMPLETED"
-	case FileStatusFailed:
-		return "FAILED"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 type File struct {
 	ID          uuid.UUID  `json:"id"`

@@ -16,12 +16,11 @@ func TestData(t *testing.T) {
 		{name: "bank_card", dataType: DataTypeBankCard, want: "BANK_CARD"},
 		{name: "text", dataType: DataTypeText, want: "TEXT"},
 		{name: "file", dataType: DataTypeFile, want: "FILE"},
-		{name: "unknown", dataType: DataType(99), want: "unknown_data_type(99)"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, tc.dataType.String())
+			assert.Equal(t, tc.want, string(tc.dataType))
 		})
 	}
 }

@@ -15,12 +15,11 @@ func TestFileStatusString(t *testing.T) {
 		{name: "in_progress", status: FileStatusInProgress, want: "IN_PROGRESS"},
 		{name: "completed", status: FileStatusCompleted, want: "COMPLETED"},
 		{name: "failed", status: FileStatusFailed, want: "FAILED"},
-		{name: "unknown", status: FileStatus(99), want: "UNKNOWN"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, tc.status.String())
+			assert.Equal(t, tc.want, string(tc.status))
 		})
 	}
 }
