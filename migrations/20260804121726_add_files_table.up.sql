@@ -8,8 +8,8 @@ CREATE TABLE file (
     size         BIGINT        NOT NULL,
     chunks_count INT           NOT NULL,
     status       file_status   NOT NULL DEFAULT 'IN_PROGRESS',
-    created_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT   fk_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -18,7 +18,7 @@ CREATE TABLE file_chunk (
     file_id     UUID    NOT NULL,
     chunk_index INT     NOT NULL,
     uploaded    BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT  fk_file_id FOREIGN KEY (file_id) REFERENCES file (id) ON DELETE CASCADE,
     UNIQUE (file_id, chunk_index)
 );
