@@ -506,7 +506,7 @@ func (h *serverHandler) UploadChunk(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.Error("error on upload chunk", "err", err)
-		h.writeError(w, http.StatusBadRequest, err.Error())
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
@@ -552,7 +552,7 @@ func (h *serverHandler) CompleteUpload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.Error("error on complete upload", "err", err)
-		h.writeError(w, http.StatusBadRequest, err.Error())
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
@@ -561,7 +561,7 @@ func (h *serverHandler) CompleteUpload(w http.ResponseWriter, r *http.Request) {
 	fileInfo, err := convertFileToAPI(file)
 	if err != nil {
 		h.logger.Error("error on convert file", "err", err)
-		h.writeError(w, http.StatusBadRequest, err.Error())
+		h.writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 

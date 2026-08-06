@@ -446,7 +446,7 @@ func TestUploadChunk(t *testing.T) {
 			fileID:         fileID.String(),
 			chunkIndex:     "0",
 			data:           "chunk data content",
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
