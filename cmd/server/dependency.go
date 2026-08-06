@@ -51,11 +51,7 @@ func newDependencyContainer(
 	// HTTP Server
 	authMiddleware := auth.NewAuthMiddleware(authService)
 	serverHandler := handler.NewServerHandler(authService, dataService, fileService, logger)
-
-	r := chi.NewMux()
-	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))
-	r.Use(authMiddleware.ToMiddlewareFunc())
-	httpServerHandler := server.HandlerFromMux(serverHandler, r)
+	httpServerHandler := createHTTPServerHandler(serverHandler, authMiddleware)
 
 	return &dependencyContainer{
 		HTTPServerHandler: httpServerHandler,
@@ -82,4 +78,42 @@ func createEncryptor(
 
 	logger.Info("using encryption key from config")
 	return crypto.NewAESGCM(key)
+}
+
+func createHTTPServerHandler(serverHandler server.ServerInterface, authMiddleware *auth.Middleware) http.Handler {
+	r := chi.NewMux()
+	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))
+
+	wrapper := &server.ServerInterfaceWrapper{
+		Handler: serverHandler,
+	}
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			// System
+			r.Get("/health", wrapper.HealthCheck)
+			// Auth
+			r.Post("/auth/login", wrapper.LoginUser)
+			r.Post("/auth/refresh", wrapper.RefreshToken)
+			r.Post("/auth/register", wrapper.RegisterUser)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.ToMiddlewareFunc())
+			// Data
+			r.Post("/data", wrapper.CreateData)
+			r.Get("/data/list", wrapper.ListData)
+			r.Get("/data/{id}", wrapper.GetData)
+			r.Put("/data/{id}", wrapper.UpdateData)
+			r.Delete("/data/{id}", wrapper.DeleteData)
+			// File
+			r.Get("/file/list", wrapper.ListFiles)
+			r.Post("/file/upload/init", wrapper.InitUpload)
+			r.Post("/file/upload/chunk", wrapper.UploadChunk)
+			r.Post("/file/upload/complete", wrapper.CompleteUpload)
+			r.Get("/file/{id}/download", wrapper.DownloadFile)
+			r.Delete("/file/{id}", wrapper.DeleteFile)
+		})
+	})
+
+	return r
 }
