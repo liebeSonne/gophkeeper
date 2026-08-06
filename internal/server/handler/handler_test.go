@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
+	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
 
 func TestHealthCheck(t *testing.T) {
@@ -161,7 +161,7 @@ func TestRegisterUser(t *testing.T) {
 
 // nolint: dupl
 func TestLoginUser(t *testing.T) {
-	invalidCredErr := apperrors.ErrInvalidCredentials
+	invalidCredErr := service.ErrInvalidCredentials
 	someErr := errors.New("internal error")
 
 	testCases := []struct {
@@ -257,7 +257,7 @@ func TestLoginUser(t *testing.T) {
 
 // nolint: dupl
 func TestRefreshToken(t *testing.T) {
-	invalidCredErr := apperrors.ErrInvalidCredentials
+	invalidCredErr := service.ErrInvalidCredentials
 	someErr := errors.New("internal error")
 
 	testCases := []struct {

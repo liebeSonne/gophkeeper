@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 )
@@ -140,7 +139,7 @@ func TestDataService_GetData(t *testing.T) {
 			requestID:   dataID,
 			requestUser: userID,
 			expectError: true,
-			expectErr:   apperrors.ErrDataNotFound,
+			expectErr:   ErrDataNotFound,
 		},
 		{
 			name: "access denied",
@@ -150,7 +149,7 @@ func TestDataService_GetData(t *testing.T) {
 			requestID:   dataID,
 			requestUser: otherUserID,
 			expectError: true,
-			expectErr:   apperrors.ErrDataAccessDenied,
+			expectErr:   ErrDataAccessDenied,
 		},
 		{
 			name: "decrypt fails",
@@ -305,7 +304,7 @@ func TestDataService_UpdateData(t *testing.T) {
 				repo.On("GetByID", mock.Anything, dataID).Return(model.Data{}, repository.ErrNotFound)
 			},
 			expectError: true,
-			expectErr:   apperrors.ErrDataNotFound,
+			expectErr:   ErrDataNotFound,
 		},
 		{
 			name: "access denied",
@@ -313,7 +312,7 @@ func TestDataService_UpdateData(t *testing.T) {
 				repo.On("GetByID", mock.Anything, dataID).Return(*makeTestData(userID, dataID), nil)
 			},
 			expectError: true,
-			expectErr:   apperrors.ErrDataAccessDenied,
+			expectErr:   ErrDataAccessDenied,
 		},
 	}
 
@@ -376,7 +375,7 @@ func TestDataService_DeleteData(t *testing.T) {
 			},
 			requestUser: userID,
 			expectError: true,
-			expectErr:   apperrors.ErrDataNotFound,
+			expectErr:   ErrDataNotFound,
 		},
 		{
 			name: "access denied",
@@ -385,7 +384,7 @@ func TestDataService_DeleteData(t *testing.T) {
 			},
 			requestUser: otherUserID,
 			expectError: true,
-			expectErr:   apperrors.ErrDataAccessDenied,
+			expectErr:   ErrDataAccessDenied,
 		},
 	}
 
@@ -437,7 +436,7 @@ func TestDataService_CreateData_FileType(t *testing.T) {
 			setupMocks: func(_ *MockDataRepository, _ *crypto.MockEncryptor, _ *MockFileProvider) {
 			},
 			expectError: true,
-			expectErr:   apperrors.ErrFileReferenceInvalid,
+			expectErr:   ErrFileReferenceInvalid,
 		},
 		{
 			name: "file not owned by user",
@@ -445,7 +444,7 @@ func TestDataService_CreateData_FileType(t *testing.T) {
 				fp.On("GetExistingFilesByUserID", mock.Anything, userID, []uuid.UUID{fileID1, fileID2}).Return([]uuid.UUID{fileID1}, nil)
 			},
 			expectError: true,
-			expectErr:   apperrors.ErrFileReferenceInvalid,
+			expectErr:   ErrFileReferenceInvalid,
 		},
 	}
 
@@ -529,7 +528,7 @@ func TestDataService_UpdateData_FileType(t *testing.T) {
 				return b
 			}(),
 			expectError: true,
-			expectErr:   apperrors.ErrFileReferenceInvalid,
+			expectErr:   ErrFileReferenceInvalid,
 		},
 	}
 

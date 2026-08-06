@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
@@ -136,7 +135,7 @@ func TestAuthService_Login(t *testing.T) {
 				userRepo.EXPECT().GetByLogin(mock.Anything, "unknownuser").Return(model.User{}, repository.ErrNotFound)
 			},
 			wantErr: true,
-			errType: apperrors.ErrInvalidCredentials,
+			errType: ErrInvalidCredentials,
 		},
 		{
 			name:     "invalid password",
@@ -150,7 +149,7 @@ func TestAuthService_Login(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			errType: apperrors.ErrInvalidCredentials,
+			errType: ErrInvalidCredentials,
 		},
 	}
 
@@ -222,7 +221,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				tokenRepo.EXPECT().GetByTokenHash(mock.Anything, mock.Anything).Return(model.RefreshToken{}, repository.ErrNotFound)
 			},
 			wantErr: true,
-			errType: apperrors.ErrInvalidCredentials,
+			errType: ErrInvalidCredentials,
 		},
 		{
 			name:         "revoked token",
@@ -240,7 +239,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			errType: apperrors.ErrInvalidCredentials,
+			errType: ErrInvalidCredentials,
 		},
 	}
 

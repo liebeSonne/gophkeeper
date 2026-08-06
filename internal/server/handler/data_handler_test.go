@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	"github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	authctx "github.com/liebeSonne/gophkeeper/internal/server/auth"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
 
 const (
@@ -163,7 +163,7 @@ func TestGetData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("GetData", mock.Anything, testDataID, userID).
-					Return(model.Data{}, errors.ErrDataNotFound)
+					Return(model.Data{}, service.ErrDataNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -172,7 +172,7 @@ func TestGetData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("GetData", mock.Anything, testDataID, userID).
-					Return(model.Data{}, errors.ErrDataAccessDenied)
+					Return(model.Data{}, service.ErrDataAccessDenied)
 			},
 			expectedStatus: http.StatusForbidden,
 		},
@@ -285,7 +285,7 @@ func TestUpdateData(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockDataService) {
 				m.On("UpdateData", mock.Anything, testDataID, userID, mock.Anything, model.DataTypeLoginPassword, "").
-					Return(model.Data{}, errors.ErrDataNotFound)
+					Return(model.Data{}, service.ErrDataNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -359,7 +359,7 @@ func TestDeleteData(t *testing.T) {
 			name:     "not found",
 			withUser: true,
 			setupMock: func(m *MockDataService) {
-				m.On("DeleteData", mock.Anything, testDataID, userID).Return(errors.ErrDataNotFound)
+				m.On("DeleteData", mock.Anything, testDataID, userID).Return(service.ErrDataNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -367,7 +367,7 @@ func TestDeleteData(t *testing.T) {
 			name:     "access denied",
 			withUser: true,
 			setupMock: func(m *MockDataService) {
-				m.On("DeleteData", mock.Anything, testDataID, userID).Return(errors.ErrDataAccessDenied)
+				m.On("DeleteData", mock.Anything, testDataID, userID).Return(service.ErrDataAccessDenied)
 			},
 			expectedStatus: http.StatusForbidden,
 		},

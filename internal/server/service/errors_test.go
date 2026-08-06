@@ -1,5 +1,4 @@
-// nolint: revive
-package errors
+package service
 
 import (
 	"testing"
@@ -7,12 +6,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAppErrors(t *testing.T) {
+func TestServiceErrors(t *testing.T) {
 	testCases := []struct {
 		name string
 		err  error
 		want string
 	}{
+		{
+			name: "err_invalid_credentials",
+			err:  ErrInvalidCredentials,
+			want: "invalid credentials",
+		},
 		{
 			name: "err_data_not_found",
 			err:  ErrDataNotFound,

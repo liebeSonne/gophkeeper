@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	"github.com/liebeSonne/gophkeeper/internal/jwt"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
@@ -56,14 +55,14 @@ func (s *AuthService) Login(ctx context.Context, login, password string) (model.
 	user, err := s.userRepo.GetByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Token{}, apperrors.ErrInvalidCredentials
+			return model.Token{}, ErrInvalidCredentials
 		}
 		return model.Token{}, fmt.Errorf("get user: %w", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return model.Token{}, apperrors.ErrInvalidCredentials
+		return model.Token{}, ErrInvalidCredentials
 	}
 
 	return s.generateTokenResponse(ctx, user.ID)
@@ -74,13 +73,13 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (mo
 	storedToken, err := s.tokenRepo.GetByTokenHash(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Token{}, apperrors.ErrInvalidCredentials
+			return model.Token{}, ErrInvalidCredentials
 		}
 		return model.Token{}, fmt.Errorf("get token: %w", err)
 	}
 
 	if !storedToken.IsActive() {
-		return model.Token{}, apperrors.ErrInvalidCredentials
+		return model.Token{}, ErrInvalidCredentials
 	}
 
 	err = s.tokenRepo.Revoke(ctx, storedToken.ID)

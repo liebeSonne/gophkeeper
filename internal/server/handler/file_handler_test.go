@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	authctx "github.com/liebeSonne/gophkeeper/internal/server/auth"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
+	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
 
 func TestFileHandlers(t *testing.T) {
@@ -124,7 +124,7 @@ func TestFileHandlers(t *testing.T) {
 			withUser: true,
 			setupMock: func(m *MockFileService) {
 				m.On("DownloadFile", mock.Anything, fileID, userID).
-					Return(nil, "", int64(0), apperrors.ErrFileNotFound)
+					Return(nil, "", int64(0), service.ErrFileNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -157,7 +157,7 @@ func TestFileHandlers(t *testing.T) {
 			path:     "/api/v1/files/" + fileID.String(),
 			withUser: true,
 			setupMock: func(m *MockFileService) {
-				m.On("DeleteFile", mock.Anything, fileID, userID).Return(apperrors.ErrFileNotFound)
+				m.On("DeleteFile", mock.Anything, fileID, userID).Return(service.ErrFileNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -255,7 +255,7 @@ func TestFileHandlers(t *testing.T) {
 			},
 			setupMock: func(m *MockFileService) {
 				m.On("CompleteUpload", mock.Anything, fileID, userID).
-					Return(model.File{}, apperrors.ErrFileNotFound)
+					Return(model.File{}, service.ErrFileNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 		},
@@ -269,7 +269,7 @@ func TestFileHandlers(t *testing.T) {
 			},
 			setupMock: func(m *MockFileService) {
 				m.On("CompleteUpload", mock.Anything, fileID, userID).
-					Return(model.File{}, apperrors.ErrFileAccessDenied)
+					Return(model.File{}, service.ErrFileAccessDenied)
 			},
 			expectedStatus: http.StatusForbidden,
 		},
@@ -280,7 +280,7 @@ func TestFileHandlers(t *testing.T) {
 			withUser:  true,
 			setupMock: func(m *MockFileService) {
 				m.On("DownloadFile", mock.Anything, fileID, userID).
-					Return(nil, "", int64(0), apperrors.ErrFileAccessDenied)
+					Return(nil, "", int64(0), service.ErrFileAccessDenied)
 			},
 			expectedStatus: http.StatusForbidden,
 		},
@@ -290,7 +290,7 @@ func TestFileHandlers(t *testing.T) {
 			path:      "/api/v1/files/" + fileID.String(),
 			withUser:  true,
 			setupMock: func(m *MockFileService) {
-				m.On("DeleteFile", mock.Anything, fileID, userID).Return(apperrors.ErrFileAccessDenied)
+				m.On("DeleteFile", mock.Anything, fileID, userID).Return(service.ErrFileAccessDenied)
 			},
 			expectedStatus: http.StatusForbidden,
 		},
@@ -403,7 +403,7 @@ func TestUploadChunk(t *testing.T) {
 			name:     "upload chunk file not found",
 			withUser: true,
 			setupMock: func(m *MockFileService) {
-				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(apperrors.ErrFileNotFound)
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(service.ErrFileNotFound)
 			},
 			fileID:         fileID.String(),
 			chunkIndex:     "0",
@@ -414,7 +414,7 @@ func TestUploadChunk(t *testing.T) {
 			name:     "upload chunk access denied",
 			withUser: true,
 			setupMock: func(m *MockFileService) {
-				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(apperrors.ErrFileAccessDenied)
+				m.On("UploadChunk", mock.Anything, fileID, userID, 0, mock.AnythingOfType("[]uint8")).Return(service.ErrFileAccessDenied)
 			},
 			fileID:         fileID.String(),
 			chunkIndex:     "0",

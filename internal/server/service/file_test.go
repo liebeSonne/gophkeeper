@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
@@ -164,7 +163,7 @@ func TestFileService_UploadChunk(t *testing.T) {
 			chunkIndex:  0,
 			data:        []byte("chunk data"),
 			expectError: true,
-			errorIs:     apperrors.ErrFileNotFound,
+			errorIs:     ErrFileNotFound,
 		},
 		{
 			name: "access denied",
@@ -178,7 +177,7 @@ func TestFileService_UploadChunk(t *testing.T) {
 			chunkIndex:  0,
 			data:        []byte("chunk data"),
 			expectError: true,
-			errorIs:     apperrors.ErrFileAccessDenied,
+			errorIs:     ErrFileAccessDenied,
 		},
 		{
 			name: "invalid chunk index",
@@ -242,7 +241,7 @@ func TestFileService_CompleteUpload(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileNotFound,
+			errorIs:     ErrFileNotFound,
 		},
 		{
 			name: "access denied",
@@ -254,7 +253,7 @@ func TestFileService_CompleteUpload(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileAccessDenied,
+			errorIs:     ErrFileAccessDenied,
 		},
 		{
 			name: "not all chunks uploaded",
@@ -366,7 +365,7 @@ func TestFileService_DownloadFile(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileNotFound,
+			errorIs:     ErrFileNotFound,
 		},
 		{
 			name: "access denied",
@@ -379,7 +378,7 @@ func TestFileService_DownloadFile(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileAccessDenied,
+			errorIs:     ErrFileAccessDenied,
 		},
 		{
 			name: "file not completed",
@@ -458,7 +457,7 @@ func TestFileService_DeleteFile(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileNotFound,
+			errorIs:     ErrFileNotFound,
 		},
 		{
 			name: "access denied",
@@ -470,7 +469,7 @@ func TestFileService_DeleteFile(t *testing.T) {
 			fileID:      testFileID,
 			userID:      testUser,
 			expectError: true,
-			errorIs:     apperrors.ErrFileAccessDenied,
+			errorIs:     ErrFileAccessDenied,
 		},
 		{
 			name: "successful delete",

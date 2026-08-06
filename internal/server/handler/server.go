@@ -11,11 +11,11 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	server "github.com/liebeSonne/gophkeeper/api/swagger"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	authctx "github.com/liebeSonne/gophkeeper/internal/server/auth"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
+	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
 
 const defaultPageSize = 20
@@ -101,7 +101,7 @@ func (h *serverHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.authService.Login(ctx, req.Login, req.Password)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrInvalidCredentials) {
+		if errors.Is(err, service.ErrInvalidCredentials) {
 			h.writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -133,7 +133,7 @@ func (h *serverHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.authService.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrInvalidCredentials) {
+		if errors.Is(err, service.ErrInvalidCredentials) {
 			h.writeError(w, http.StatusUnauthorized, "invalid refresh token")
 			return
 		}
@@ -218,11 +218,11 @@ func (h *serverHandler) GetData(w http.ResponseWriter, r *http.Request, id opena
 
 	result, err := h.dataService.GetData(ctx, dataID, userID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrDataNotFound) {
+		if errors.Is(err, service.ErrDataNotFound) {
 			h.writeError(w, http.StatusNotFound, "data not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrDataAccessDenied) {
+		if errors.Is(err, service.ErrDataAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -346,11 +346,11 @@ func (h *serverHandler) UpdateData(w http.ResponseWriter, r *http.Request, id op
 	metadata := convertDataMetadataFromAPIData(req.Data)
 	result, err := h.dataService.UpdateData(ctx, dataID, userID, payloadJSON, dataType, metadata)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrDataNotFound) {
+		if errors.Is(err, service.ErrDataNotFound) {
 			h.writeError(w, http.StatusNotFound, "data not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrDataAccessDenied) {
+		if errors.Is(err, service.ErrDataAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -390,11 +390,11 @@ func (h *serverHandler) DeleteData(w http.ResponseWriter, r *http.Request, id op
 
 	err := h.dataService.DeleteData(ctx, dataID, userID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrDataNotFound) {
+		if errors.Is(err, service.ErrDataNotFound) {
 			h.writeError(w, http.StatusNotFound, "data not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrDataAccessDenied) {
+		if errors.Is(err, service.ErrDataAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -497,11 +497,11 @@ func (h *serverHandler) UploadChunk(w http.ResponseWriter, r *http.Request) {
 
 	err = h.fileService.UploadChunk(ctx, fileID, userID, chunkIndex, data)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrFileNotFound) {
+		if errors.Is(err, service.ErrFileNotFound) {
 			h.writeError(w, http.StatusNotFound, "file not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+		if errors.Is(err, service.ErrFileAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -543,11 +543,11 @@ func (h *serverHandler) CompleteUpload(w http.ResponseWriter, r *http.Request) {
 
 	file, err := h.fileService.CompleteUpload(ctx, fileID, userID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrFileNotFound) {
+		if errors.Is(err, service.ErrFileNotFound) {
 			h.writeError(w, http.StatusNotFound, "file not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+		if errors.Is(err, service.ErrFileAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -584,11 +584,11 @@ func (h *serverHandler) DownloadFile(w http.ResponseWriter, r *http.Request, id 
 
 	reader, mimeType, size, err := h.fileService.DownloadFile(ctx, fileID, userID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrFileNotFound) {
+		if errors.Is(err, service.ErrFileNotFound) {
 			h.writeError(w, http.StatusNotFound, "file not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+		if errors.Is(err, service.ErrFileAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}
@@ -626,11 +626,11 @@ func (h *serverHandler) DeleteFile(w http.ResponseWriter, r *http.Request, id op
 
 	err := h.fileService.DeleteFile(ctx, fileID, userID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrFileNotFound) {
+		if errors.Is(err, service.ErrFileNotFound) {
 			h.writeError(w, http.StatusNotFound, "file not found")
 			return
 		}
-		if errors.Is(err, apperrors.ErrFileAccessDenied) {
+		if errors.Is(err, service.ErrFileAccessDenied) {
 			h.writeError(w, http.StatusForbidden, "access denied")
 			return
 		}

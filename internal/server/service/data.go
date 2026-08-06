@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
+
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository/db"
@@ -74,13 +74,13 @@ func (s *DataService) GetData(ctx context.Context, id, userID uuid.UUID) (model.
 	data, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Data{}, apperrors.ErrDataNotFound
+			return model.Data{}, ErrDataNotFound
 		}
 		return model.Data{}, fmt.Errorf("get data: %w", err)
 	}
 
 	if data.UserID != userID {
-		return model.Data{}, apperrors.ErrDataAccessDenied
+		return model.Data{}, ErrDataAccessDenied
 	}
 
 	decrypted, err := s.encryptor.Decrypt(data.Payload)
@@ -147,13 +147,13 @@ func (s *DataService) UpdateData(
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.Data{}, apperrors.ErrDataNotFound
+			return model.Data{}, ErrDataNotFound
 		}
 		return model.Data{}, fmt.Errorf("get data: %w", err)
 	}
 
 	if existing.UserID != userID {
-		return model.Data{}, apperrors.ErrDataAccessDenied
+		return model.Data{}, ErrDataAccessDenied
 	}
 
 	if dataType == model.DataTypeFile {
@@ -185,13 +185,13 @@ func (s *DataService) DeleteData(ctx context.Context, id, userID uuid.UUID) erro
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return apperrors.ErrDataNotFound
+			return ErrDataNotFound
 		}
 		return fmt.Errorf("get data: %w", err)
 	}
 
 	if existing.UserID != userID {
-		return apperrors.ErrDataAccessDenied
+		return ErrDataAccessDenied
 	}
 
 	err = s.repo.Delete(ctx, []uuid.UUID{id})
@@ -210,7 +210,7 @@ func (s *DataService) validateFilePayload(ctx context.Context, userID uuid.UUID,
 	}
 
 	if len(fp.FileIDs) == 0 {
-		return apperrors.ErrFileReferenceInvalid
+		return ErrFileReferenceInvalid
 	}
 
 	validIDs, err := s.fileProvider.GetExistingFilesByUserID(ctx, userID, fp.FileIDs)
@@ -219,7 +219,7 @@ func (s *DataService) validateFilePayload(ctx context.Context, userID uuid.UUID,
 	}
 
 	if len(validIDs) != len(fp.FileIDs) {
-		return apperrors.ErrFileReferenceInvalid
+		return ErrFileReferenceInvalid
 	}
 
 	return nil

@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/liebeSonne/gophkeeper/internal/crypto"
-	apperrors "github.com/liebeSonne/gophkeeper/internal/errors"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 	"github.com/liebeSonne/gophkeeper/internal/server/model"
 	"github.com/liebeSonne/gophkeeper/internal/server/repository"
@@ -56,7 +55,7 @@ func (s *FileService) InitUpload(
 	chunksCount int,
 ) (model.File, error) {
 	if chunksCount < 1 {
-		return model.File{}, apperrors.ErrInvalidChinksCount
+		return model.File{}, ErrInvalidChinksCount
 	}
 
 	now := time.Now()
@@ -106,21 +105,21 @@ func (s *FileService) UploadChunk(
 	file, err := s.fileRepo.GetFileByID(ctx, fileID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return apperrors.ErrFileNotFound
+			return ErrFileNotFound
 		}
 		return fmt.Errorf("get file: %w", err)
 	}
 
 	if file.UserID != userID {
-		return apperrors.ErrFileAccessDenied
+		return ErrFileAccessDenied
 	}
 
 	if file.Status != model.FileStatusInProgress {
-		return apperrors.ErrFileUploadNotInProgress
+		return ErrFileUploadNotInProgress
 	}
 
 	if chunkIndex < 0 || chunkIndex >= file.ChunksCount {
-		return apperrors.ErrInvalidChunkIndex
+		return ErrInvalidChunkIndex
 	}
 
 	encrypted, err := s.encryptor.Encrypt(data)
@@ -150,17 +149,17 @@ func (s *FileService) CompleteUpload(
 	file, err := s.fileRepo.GetFileByID(ctx, fileID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return model.File{}, apperrors.ErrFileNotFound
+			return model.File{}, ErrFileNotFound
 		}
 		return model.File{}, fmt.Errorf("get file: %w", err)
 	}
 
 	if file.UserID != userID {
-		return model.File{}, apperrors.ErrFileAccessDenied
+		return model.File{}, ErrFileAccessDenied
 	}
 
 	if file.Status != model.FileStatusInProgress {
-		return model.File{}, apperrors.ErrFileUploadNotInProgress
+		return model.File{}, ErrFileUploadNotInProgress
 	}
 
 	uploadedCount, err := s.fileRepo.GetUploadedChunksCount(ctx, fileID)
@@ -249,17 +248,17 @@ func (s *FileService) DownloadFile(
 	file, err := s.fileRepo.GetFileByID(ctx, fileID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, "", 0, apperrors.ErrFileNotFound
+			return nil, "", 0, ErrFileNotFound
 		}
 		return nil, "", 0, fmt.Errorf("get file: %w", err)
 	}
 
 	if file.UserID != userID {
-		return nil, "", 0, apperrors.ErrFileAccessDenied
+		return nil, "", 0, ErrFileAccessDenied
 	}
 
 	if file.Status != model.FileStatusCompleted {
-		return nil, "", 0, apperrors.ErrFileNotCompleted
+		return nil, "", 0, ErrFileNotCompleted
 	}
 
 	objectKey := s.makeFileKey(fileID)
@@ -279,13 +278,13 @@ func (s *FileService) DeleteFile(
 	file, err := s.fileRepo.GetFileByID(ctx, fileID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return apperrors.ErrFileNotFound
+			return ErrFileNotFound
 		}
 		return fmt.Errorf("get file: %w", err)
 	}
 
 	if file.UserID != userID {
-		return apperrors.ErrFileAccessDenied
+		return ErrFileAccessDenied
 	}
 
 	objectKey := s.makeFileKey(fileID)
