@@ -10,14 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/liebeSonne/gophkeeper/internal/client/app"
-	gophkeeper "github.com/liebeSonne/gophkeeper/pkg/client/gophkeeper"
-)
-
-const (
-	dataTypeLoginPassword = "LOGIN_PASSWORD"
-	dataTypeBankCard      = "BANK_CARD"
-	dataTypeText          = "TEXT"
-	dataTypeFile          = "FILE"
+	"github.com/liebeSonne/gophkeeper/internal/client/model"
 )
 
 var dataCmd = &cobra.Command{
@@ -84,15 +77,13 @@ func runDataList(cmd *cobra.Command, _ []string) error {
 	if a == nil {
 		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
-
-	client, err := newAPIClient(a)
-	if err != nil {
-		return err
+	if a.Storage == nil {
+		return fmt.Errorf("storage not configured")
 	}
 
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("page-size")
-	typesStr, _ := cmd.Flags().GetStringSlice("type")
+	types, _ := cmd.Flags().GetStringSlice("type")
 	query, _ := cmd.Flags().GetString("search")
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 
@@ -103,27 +94,19 @@ func runDataList(cmd *cobra.Command, _ []string) error {
 		page = 1
 	}
 
-	var types []gophkeeper.DataType
-	for _, t := range typesStr {
-		types = append(types, gophkeeper.DataType(t))
-	}
+	offset := (page - 1) * pageSize
 
-	var typesPtr *[]gophkeeper.DataType
-	if len(types) > 0 {
-		typesPtr = &types
-	}
-
-	var queryPtr *string
-	if query != "" {
-		queryPtr = &query
-	}
-
-	resp, err := client.ListData(cmd.Context(), &page, &pageSize, typesPtr, queryPtr)
+	entries, err := a.Storage.DataList(model.DataFilter{
+		Types:  types,
+		Query:  query,
+		Limit:  pageSize,
+		Offset: offset,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("list data: %w", err)
 	}
 
-	return outputDataList(resp.JSON200, jsonOutput)
+	return outputDataList(entries, jsonOutput, page, pageSize)
 }
 
 func runDataGet(cmd *cobra.Command, _ []string) error {
@@ -133,10 +116,8 @@ func runDataGet(cmd *cobra.Command, _ []string) error {
 	if a == nil {
 		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
-
-	client, err := newAPIClient(a)
-	if err != nil {
-		return err
+	if a.Storage == nil {
+		return fmt.Errorf("storage not configured")
 	}
 
 	idStr, _ := cmd.Flags().GetString("id")
@@ -151,12 +132,12 @@ func runDataGet(cmd *cobra.Command, _ []string) error {
 
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 
-	resp, err := client.GetData(cmd.Context(), id)
+	entry, err := a.Storage.DataGet(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("get data: %w", err)
 	}
 
-	return outputDataGet(resp.JSON200, jsonOutput)
+	return outputDataGet(entry, jsonOutput)
 }
 
 func runDataCreate(cmd *cobra.Command, _ []string) error {
@@ -166,10 +147,8 @@ func runDataCreate(cmd *cobra.Command, _ []string) error {
 	if a == nil {
 		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
-
-	client, err := newAPIClient(a)
-	if err != nil {
-		return err
+	if a.Storage == nil {
+		return fmt.Errorf("storage not configured")
 	}
 
 	dataType, _ := cmd.Flags().GetString("type")
@@ -180,22 +159,26 @@ func runDataCreate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("--type is required")
 	}
 
-	data, err := buildDataPayload(dataType, payloadStr, payloadFile)
+	payload, err := readPayload(payloadStr, payloadFile)
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.CreateData(cmd.Context(), *data)
-	if err != nil {
-		return err
+	now := time.Now()
+	entry := model.DataEntry{
+		ID:         uuid.New(),
+		Type:       dataType,
+		Payload:    string(payload),
+		SyncStatus: model.SyncStatusPending,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 
-	if resp.JSON201 != nil && resp.JSON201.Data != nil {
-		id, _ := extractDataID(resp.JSON201.Data)
-		fmt.Printf("Data created successfully. ID: %s\n", id)
-	} else {
-		fmt.Println("Data created successfully.")
+	if err := a.Storage.DataPut(entry); err != nil {
+		return fmt.Errorf("save data: %w", err)
 	}
+
+	fmt.Printf("Data created successfully. ID: %s\n", entry.ID)
 	return nil
 }
 
@@ -206,16 +189,11 @@ func runDataUpdate(cmd *cobra.Command, _ []string) error {
 	if a == nil {
 		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
-
-	client, err := newAPIClient(a)
-	if err != nil {
-		return err
+	if a.Storage == nil {
+		return fmt.Errorf("storage not configured")
 	}
 
 	idStr, _ := cmd.Flags().GetString("id")
-	payloadStr, _ := cmd.Flags().GetString("payload")
-	payloadFile, _ := cmd.Flags().GetString("payload-file")
-
 	if idStr == "" {
 		return fmt.Errorf("--id is required")
 	}
@@ -230,14 +208,35 @@ func runDataUpdate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("--type is required")
 	}
 
-	data, err := buildDataPayload(dataType, payloadStr, payloadFile)
+	payloadStr, _ := cmd.Flags().GetString("payload")
+	payloadFile, _ := cmd.Flags().GetString("payload-file")
+
+	payload, err := readPayload(payloadStr, payloadFile)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.UpdateData(cmd.Context(), id, *data)
+	existing, err := a.Storage.DataGet(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("get data: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("data entry not found: %s", idStr)
+	}
+
+	entry := model.DataEntry{
+		ID:         existing.ID,
+		RemoteID:   existing.RemoteID,
+		Type:       dataType,
+		Payload:    string(payload),
+		SyncStatus: model.SyncStatusPending,
+		ServerEtag: existing.ServerEtag,
+		CreatedAt:  existing.CreatedAt,
+		UpdatedAt:  time.Now(),
+	}
+
+	if err := a.Storage.DataPut(entry); err != nil {
+		return fmt.Errorf("save data: %w", err)
 	}
 
 	fmt.Println("Data updated successfully.")
@@ -251,10 +250,8 @@ func runDataDelete(cmd *cobra.Command, _ []string) error {
 	if a == nil {
 		return fmt.Errorf("client not initialized: run 'gk init' first")
 	}
-
-	client, err := newAPIClient(a)
-	if err != nil {
-		return err
+	if a.Storage == nil {
+		return fmt.Errorf("storage not configured")
 	}
 
 	idStr, _ := cmd.Flags().GetString("id")
@@ -267,15 +264,42 @@ func runDataDelete(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("invalid ID format: %w", err)
 	}
 
-	if err := client.DeleteData(cmd.Context(), id); err != nil {
-		return err
+	existing, err := a.Storage.DataGet(id)
+	if err != nil {
+		return fmt.Errorf("get data: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("data entry not found: %s", idStr)
 	}
 
-	fmt.Println("Data deleted successfully.")
+	if existing.SyncStatus == model.SyncStatusPending && existing.RemoteID == nil {
+		if err := a.Storage.DataDelete(id); err != nil {
+			return fmt.Errorf("delete data: %w", err)
+		}
+		fmt.Println("Data deleted successfully.")
+		return nil
+	}
+
+	entry := model.DataEntry{
+		ID:         existing.ID,
+		RemoteID:   existing.RemoteID,
+		Type:       existing.Type,
+		Payload:    existing.Payload,
+		SyncStatus: model.SyncStatusDeleting,
+		ServerEtag: existing.ServerEtag,
+		CreatedAt:  existing.CreatedAt,
+		UpdatedAt:  time.Now(),
+	}
+
+	if err := a.Storage.DataPut(entry); err != nil {
+		return fmt.Errorf("save data: %w", err)
+	}
+
+	fmt.Println("Data marked for deletion. Run 'gk sync' to delete from server.")
 	return nil
 }
 
-func buildDataPayload(dataType, payloadStr, payloadFile string) (*gophkeeper.Data, error) {
+func readPayload(payloadStr, payloadFile string) ([]byte, error) {
 	var payload []byte
 	var err error
 
@@ -295,174 +319,88 @@ func buildDataPayload(dataType, payloadStr, payloadFile string) (*gophkeeper.Dat
 		return nil, fmt.Errorf("invalid JSON payload")
 	}
 
-	data := &gophkeeper.Data{}
-
-	switch dataType {
-	case dataTypeLoginPassword:
-		var lp gophkeeper.LoginPasswordData
-		if err := json.Unmarshal(payload, &lp); err != nil {
-			return nil, fmt.Errorf("parse payload: %w", err)
-		}
-		lp.Type = gophkeeper.LoginPasswordDataType(dataType)
-		if err := data.FromLoginPasswordData(lp); err != nil {
-			return nil, fmt.Errorf("build data: %w", err)
-		}
-	case dataTypeBankCard:
-		var bc gophkeeper.BankCardData
-		if err := json.Unmarshal(payload, &bc); err != nil {
-			return nil, fmt.Errorf("parse payload: %w", err)
-		}
-		bc.Type = gophkeeper.BankCardDataType(dataType)
-		if err := data.FromBankCardData(bc); err != nil {
-			return nil, fmt.Errorf("build data: %w", err)
-		}
-	case dataTypeText:
-		var td gophkeeper.TextData
-		if err := json.Unmarshal(payload, &td); err != nil {
-			return nil, fmt.Errorf("parse payload: %w", err)
-		}
-		td.Type = gophkeeper.TextDataType(dataType)
-		if err := data.FromTextData(td); err != nil {
-			return nil, fmt.Errorf("build data: %w", err)
-		}
-	case dataTypeFile:
-		var fd gophkeeper.FileData
-		if err := json.Unmarshal(payload, &fd); err != nil {
-			return nil, fmt.Errorf("parse payload: %w", err)
-		}
-		fd.Type = gophkeeper.FileDataType(dataType)
-		if err := data.FromFileData(fd); err != nil {
-			return nil, fmt.Errorf("build data: %w", err)
-		}
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s (use LOGIN_PASSWORD, BANK_CARD, TEXT, FILE)", dataType)
-	}
-
-	return data, nil
+	return payload, nil
 }
 
-func outputDataList(resp *gophkeeper.DataList, jsonOutput bool) error {
+func outputDataList(entries []model.DataEntry, jsonOutput bool, page, pageSize int) error {
 	if jsonOutput {
+		type listOutput struct {
+			Items      []model.DataEntry `json:"items"`
+			Page       int               `json:"page"`
+			TotalPages int               `json:"total_pages"`
+			Total      int               `json:"total"`
+		}
+		totalPages := 1
+		if pageSize > 0 {
+			totalPages = (len(entries) + pageSize - 1) / pageSize
+		}
+		output := listOutput{
+			Items:      entries,
+			Page:       page,
+			TotalPages: totalPages,
+			Total:      len(entries),
+		}
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(resp)
+		return encoder.Encode(output)
 	}
 
-	if resp == nil || len(resp.Items) == 0 {
+	if len(entries) == 0 {
 		fmt.Println("No data entries found.")
 		return nil
 	}
 
-	fmt.Printf("%-36s %-18s %s\n", "ID", "Type", "Created")
-	fmt.Println("------------------------------------------------------------")
+	fmt.Printf("%-36s %-18s %-10s %s\n", "ID", "Type", "Sync", "Updated")
+	fmt.Println("------------------------------------------------------------------------")
 
-	for _, item := range resp.Items {
-		id, dataType, createdAt := extractDataInfo(item)
-		fmt.Printf("%-36s %-18s %s\n", id, dataType, createdAt.Format("2006-01-02 15:04:05"))
+	for _, entry := range entries {
+		fmt.Printf("%-36s %-18s %-10s %s\n",
+			entry.ID.String(),
+			entry.Type,
+			string(entry.SyncStatus),
+			entry.UpdatedAt.Format("2006-01-02 15:04:05"),
+		)
 	}
 
-	fmt.Printf("\nPage %d/%d (total: %d)\n", resp.Page, resp.TotalPages, resp.Total)
+	fmt.Printf("\nShowing %d entries\n", len(entries))
 	return nil
 }
 
-func outputDataGet(resp *gophkeeper.DataInfo, jsonOutput bool) error {
+func outputDataGet(entry *model.DataEntry, jsonOutput bool) error {
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(resp)
+		return encoder.Encode(entry)
 	}
 
-	if resp == nil {
+	if entry == nil {
 		fmt.Println("Data entry not found.")
 		return nil
 	}
 
-	id, dataType, createdAt := extractDataInfo(*resp)
-	fmt.Printf("ID:     %s\n", id)
-	fmt.Printf("Type:   %s\n", dataType)
-	fmt.Printf("Created: %s\n", createdAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("ID:       %s\n", entry.ID)
+	fmt.Printf("Type:     %s\n", entry.Type)
+	fmt.Printf("Sync:     %s\n", entry.SyncStatus)
+	fmt.Printf("Created:  %s\n", entry.CreatedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Updated:  %s\n", entry.UpdatedAt.Format("2006-01-02 15:04:05"))
 
-	switch dataType {
-	case dataTypeLoginPassword:
-		if data, err := resp.AsLoginPasswordDataInfo(); err == nil {
-			fmt.Printf("Login:    %s\n", data.Login)
-			fmt.Printf("Password: %s\n", data.Password)
-		}
-	case dataTypeBankCard:
-		if data, err := resp.AsBankCardDataInfo(); err == nil {
-			fmt.Printf("Card:     %s\n", data.CardNumber)
-			fmt.Printf("Holder:   %s\n", data.CardHolder)
-			fmt.Printf("Expiry:   %s\n", data.CardExpiry)
-		}
-	case dataTypeText:
-		if data, err := resp.AsTextDataInfo(); err == nil {
-			fmt.Printf("Text:     %s\n", data.Text)
-		}
-	case dataTypeFile:
-		if data, err := resp.AsFileDataInfo(); err == nil {
-			fmt.Printf("Files:    %d\n", len(data.FileIds))
-		}
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(entry.Payload), &payload); err == nil {
+		fmt.Println("\nPayload:")
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		_ = encoder.Encode(payload)
+	}
+
+	if entry.ErrorMessage != nil {
+		fmt.Printf("\nError: %s\n", *entry.ErrorMessage)
 	}
 
 	return nil
 }
 
-func extractDataInfo(item gophkeeper.DataInfo) (id, dataType string, createdAt time.Time) {
-	discriminator, err := item.Discriminator()
-	if err != nil {
-		return "", "UNKNOWN", time.Time{}
-	}
-
-	switch discriminator {
-	case dataTypeLoginPassword:
-		if data, err := item.AsLoginPasswordDataInfo(); err == nil {
-			return data.Id.String(), dataTypeLoginPassword, data.CreatedAt
-		}
-	case dataTypeBankCard:
-		if data, err := item.AsBankCardDataInfo(); err == nil {
-			return data.Id.String(), dataTypeBankCard, data.CreatedAt
-		}
-	case dataTypeText:
-		if data, err := item.AsTextDataInfo(); err == nil {
-			return data.Id.String(), dataTypeText, data.CreatedAt
-		}
-	case dataTypeFile:
-		if data, err := item.AsFileDataInfo(); err == nil {
-			return data.Id.String(), dataTypeFile, data.CreatedAt
-		}
-	}
-
-	return "", "UNKNOWN", time.Time{}
-}
-
-func extractDataID(item *gophkeeper.DataInfo) (string, error) {
-	if item == nil {
-		return "", fmt.Errorf("no data")
-	}
-
-	discriminator, err := item.Discriminator()
-	if err != nil {
-		return "", err
-	}
-
-	switch discriminator {
-	case dataTypeLoginPassword:
-		if data, err := item.AsLoginPasswordDataInfo(); err == nil {
-			return data.Id.String(), nil
-		}
-	case dataTypeBankCard:
-		if data, err := item.AsBankCardDataInfo(); err == nil {
-			return data.Id.String(), nil
-		}
-	case dataTypeText:
-		if data, err := item.AsTextDataInfo(); err == nil {
-			return data.Id.String(), nil
-		}
-	case dataTypeFile:
-		if data, err := item.AsFileDataInfo(); err == nil {
-			return data.Id.String(), nil
-		}
-	}
-
-	return "", fmt.Errorf("unknown data type: %s", discriminator)
+func init() { //nolint:gochecknoinits
+	rootCmd.AddCommand(dataCmd)
+	dataCmd.AddCommand(dataListCmd, dataGetCmd, dataCreateCmd, dataUpdateCmd, dataDeleteCmd)
+	initDataFlags()
 }

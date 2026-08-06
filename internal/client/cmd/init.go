@@ -46,7 +46,8 @@ at ~/.config/gophkeeper/ if it doesn't exist.`,
 			LogLevel:      "info",
 		}
 
-		if err := config.Save(cfg); err != nil {
+		err := config.Save(cfg)
+		if err != nil {
 			return fmt.Errorf("save config: %w", err)
 		}
 
@@ -55,7 +56,7 @@ at ~/.config/gophkeeper/ if it doesn't exist.`,
 			return fmt.Errorf("initialize logger: %w", err)
 		}
 
-		_, err = storage.NewTokenStorage(storagePath, logger)
+		_, err = storage.NewStore(storagePath, logger)
 		if err != nil {
 			return fmt.Errorf("init storage: %w", err)
 		}

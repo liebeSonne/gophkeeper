@@ -71,6 +71,7 @@ func Setup() {
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(dataCmd)
 	rootCmd.AddCommand(fileCmd)
+	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(tuiCmd)
 	rootCmd.PersistentFlags().String("log-level", clientconfig.DefaultLogLevel, "log level (debug, info, warn, error)")
 }

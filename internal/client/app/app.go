@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
+	apiClient "github.com/liebeSonne/gophkeeper/internal/client/adapter/gophkeeper"
 	clientconfig "github.com/liebeSonne/gophkeeper/internal/client/config"
+	clientsync "github.com/liebeSonne/gophkeeper/internal/client/service"
 	"github.com/liebeSonne/gophkeeper/internal/client/storage"
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
@@ -18,10 +21,13 @@ var (
 
 var ErrNotInitialized = errors.New("client not initialized: run 'gk init' first")
 
+const defaultSyncInterval = 30 * time.Second
+
 type App struct {
 	Config  clientconfig.ClientConfig
 	Logger  intlogger.Logger
-	Storage *storage.TokenStorage
+	Storage *storage.Store
+	Sync    *clientsync.Service
 }
 
 func EnsureInitialized(logLevelOverride string) (*App, error) {
@@ -60,16 +66,29 @@ func EnsureInitialized(logLevelOverride string) (*App, error) {
 		return nil, fmt.Errorf("create logger: %w", err)
 	}
 
-	store, err := storage.NewTokenStorage(cfg.StoragePath, logger)
+	store, err := storage.NewStore(cfg.StoragePath, logger)
 	if err != nil {
 		logger.Warn("failed to open storage, continuing without it", "err", err)
 		store = nil
+	}
+
+	api, err := apiClient.NewClient(cfg.ServerAddress)
+	if err != nil {
+		logger.Warn("failed to create API client, sync will be disabled", "err", err)
+		api = nil
+	}
+
+	var syncService *clientsync.Service
+	if store != nil && api != nil {
+		syncService = clientsync.NewService(store, api, logger, defaultSyncInterval)
+		syncService.Start()
 	}
 
 	instance = &App{
 		Config:  cfg,
 		Logger:  logger,
 		Storage: store,
+		Sync:    syncService,
 	}
 
 	return instance, nil
@@ -101,15 +120,17 @@ func Close() error {
 		return nil
 	}
 
-	var closeErr error
+	if instance.Sync != nil {
+		instance.Sync.Stop()
+	}
 	if instance.Storage != nil {
-		closeErr = instance.Storage.Close()
+		_ = instance.Storage.Close()
 	}
 	if instance.Logger != nil {
 		_ = instance.Logger.Sync()
 	}
 	instance = nil
-	return closeErr
+	return nil
 }
 
 var logLevelMap = map[string]intlogger.LogLevel{
