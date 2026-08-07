@@ -55,7 +55,7 @@ func (s *FileService) InitUpload(
 	chunksCount int,
 ) (model.File, error) {
 	if chunksCount < 1 {
-		return model.File{}, ErrInvalidChinksCount
+		return model.File{}, ErrInvalidChunksCount
 	}
 
 	now := time.Now()

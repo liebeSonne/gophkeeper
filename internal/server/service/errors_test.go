@@ -49,7 +49,7 @@ func TestServiceErrors(t *testing.T) {
 		},
 		{
 			name: "err_invalid_chunks_count",
-			err:  ErrInvalidChinksCount,
+			err:  ErrInvalidChunksCount,
 			want: "invalid chunks count (must be at least 1)",
 		},
 		{
