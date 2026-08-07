@@ -614,7 +614,7 @@ func TestUnmarshalPayload(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := UnmarshalPayload(tc.payload, tc.dataType)
+			result, err := unmarshalPayload(tc.payload, tc.dataType)
 
 			if tc.expectErr {
 				require.Error(t, err)

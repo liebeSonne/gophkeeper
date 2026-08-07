@@ -271,7 +271,7 @@ func fileIDsEqual(a, b []uuid.UUID) bool {
 	return true
 }
 
-func UnmarshalPayload(payload []byte, dataType model.DataType) (interface{}, error) {
+func unmarshalPayload(payload []byte, dataType model.DataType) (interface{}, error) {
 	switch dataType {
 	case model.DataTypeLoginPassword:
 		var p model.LoginPasswordPayload
