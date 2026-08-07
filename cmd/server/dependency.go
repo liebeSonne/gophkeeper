@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,6 +20,8 @@ import (
 	"github.com/liebeSonne/gophkeeper/internal/server/repository/db"
 	"github.com/liebeSonne/gophkeeper/internal/server/service"
 )
+
+const vaultClientTimeout = 10 * time.Second
 
 type dependencyContainer struct {
 	HTTPServerHandler http.Handler
@@ -68,7 +71,10 @@ func createEncryptor(
 			"address", cfg.VaultAddress,
 			"key_path", cfg.VaultKeyPath,
 		)
-		return crypto.NewVaultEncryptor(ctx, cfg.VaultAddress, cfg.VaultToken, cfg.VaultKeyPath, logger)
+		vaultHTTPClient := &http.Client{
+			Timeout: vaultClientTimeout,
+		}
+		return crypto.NewVaultEncryptor(ctx, cfg.VaultAddress, cfg.VaultToken, cfg.VaultKeyPath, vaultHTTPClient, logger)
 	}
 
 	key, err := base64.StdEncoding.DecodeString(cfg.EncryptionKey)

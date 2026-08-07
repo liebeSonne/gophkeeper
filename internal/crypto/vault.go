@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
@@ -21,20 +20,17 @@ type VaultEncryptor struct {
 	aes *AESGCM
 }
 
-var vaultClient = &http.Client{
-	Timeout: 10 * time.Second,
-}
-
 func NewVaultEncryptor(
 	ctx context.Context,
 	address, token, keyPath string,
+	client *http.Client,
 	logger intlogger.Logger,
 ) (*VaultEncryptor, error) {
 	if keyPath == "" {
 		keyPath = defaultVaultKeyPath
 	}
 
-	key, err := loadKeyFromVault(ctx, address, token, keyPath, logger)
+	key, err := loadKeyFromVault(ctx, address, token, keyPath, client, logger)
 	if err != nil {
 		return nil, fmt.Errorf("load key from vault: %w", err)
 	}
@@ -58,6 +54,7 @@ func (v *VaultEncryptor) Decrypt(ciphertext []byte) ([]byte, error) {
 func loadKeyFromVault(
 	ctx context.Context,
 	address, token, keyPath string,
+	client *http.Client,
 	logger intlogger.Logger,
 ) ([]byte, error) {
 	base, err := url.Parse(address)
@@ -86,7 +83,7 @@ func loadKeyFromVault(
 	req.Header.Set("Content-Type", "application/json")
 
 	// nolint: gosec
-	resp, err := vaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("http request: %w", err)
 	}

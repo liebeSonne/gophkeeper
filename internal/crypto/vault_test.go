@@ -7,12 +7,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	intlogger "github.com/liebeSonne/gophkeeper/internal/logger"
 )
+
+var testVaultClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 func TestNewVaultEncryptor(t *testing.T) {
 	key := []byte("01234567890123456789012345678901")
@@ -111,7 +116,7 @@ func TestNewVaultEncryptor(t *testing.T) {
 			defer server.Close()
 
 			l := intlogger.NewMockLogger(t)
-			encryptor, err := NewVaultEncryptor(context.Background(), server.URL, "test-token", tc.keyPath, l)
+			encryptor, err := NewVaultEncryptor(context.Background(), server.URL, "test-token", tc.keyPath, testVaultClient, l)
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -159,7 +164,7 @@ func TestLoadKeyFromVault(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			l := intlogger.NewMockLogger(t)
-			_, err := loadKeyFromVault(context.Background(), tc.address, "token", "path", l)
+			_, err := loadKeyFromVault(context.Background(), tc.address, "token", "path", testVaultClient, l)
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.expectErrContains)
